@@ -1,3 +1,6 @@
+Alles noch ungetestet.....
+Copilot hats gebaut. Wird die tage aktualisiert
+
 # 📸 Raspberry Pi Fotobox - Komplette Aufbauanleitung
 
 Diese Schritt-für-Schritt-Anleitung hilft dir, die Fotobox auf deinem Raspberry Pi 5 einzurichten - auch ohne Vorwissen!
