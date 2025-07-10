@@ -1,0 +1,15 @@
+{
+  "name": "photobooth-backend-windows",
+  "version": "1.0.0",
+  "main": "server-windows.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server-windows.js",
+    "dev": "node server-windows.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "cors": "^2.8.5"
+  },
+  "description": "Windows-kompatible Version des Photobooth-Backends für Tests ohne GPIO/gphoto2"
+}

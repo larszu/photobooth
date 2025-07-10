@@ -1,8 +1,80 @@
 # 📸 Raspberry Pi Fotobox - Komplette Aufbauanleitung
 
+## 🏆 Meilenstein 1 erreicht! ✅
+**Frontend-Grundfunktionalität vollständig implementiert und getestet (Juli 2025)**
+- ✅ React + TypeScript Frontend läuft stabil
+- ✅ Touch-optimierte Foto-Galerie funktioniert
+- ✅ Einzelfoto-Anzeige mit Zoom/Swipe implementiert  
+- ✅ Robustes Fallback-System ohne Backend
+- ✅ Echte Fotos erfolgreich integriert
+- ✅ Debug-System für Fehleranalyse verfügbar
+
+**👉 Die Anwendung läuft unter: http://localhost:5173**
+
+---
+
 Diese Schritt-für-Schritt-Anleitung hilft dir, die Fotobox auf deinem Raspberry Pi 5 einzurichten - auch ohne Vorwissen!
 
-## 🛠️ Was du brauchst
+## �️ Windows Demo-Modus (Testen ohne Raspberry Pi)
+
+**Du möchtest die Software erst auf Windows testen? Perfekt!**
+
+### Voraussetzungen
+- Windows 10/11
+- Node.js 18+ ([nodejs.org](https://nodejs.org))
+- Git ([git-scm.com](https://git-scm.com))
+
+### Demo starten (3 Schritte)
+1. **Terminal öffnen:** Windows-Taste + R → `powershell` → Enter
+2. **Projekt herunterladen:**
+   ```powershell
+   git clone https://github.com/dein-username/photobooth.git
+   cd photobooth
+   ```
+3. **Demo starten:**
+   ```powershell
+   npm install
+   cd backend
+   npm install
+   cd ..
+   npm run demo
+   ```
+   **Neues Terminal öffnen** (Windows-Taste + R → `powershell` → Enter):
+   ```powershell
+   cd photobooth
+   npm run demo:frontend
+   ```
+
+### ✨ Demo-Features
+- 🖼️ **5 Demo-Fotos** werden automatisch erstellt
+- 📸 **"Foto aufnehmen"** erstellt neue Demo-Bilder
+- 🖱️ **Maus-Bedienung:**
+  - **Swipe:** Ziehen mit gedrückter Maustaste
+  - **Zoom:** Mausrad oder Strg + Mausrad
+  - **Tippen:** Normale Mausklicks
+- 🔗 **QR-Codes** funktional (simuliert)
+- 💡 **GPIO/LED** wird in der Konsole simuliert
+
+### Browser öffnen
+- Frontend: [http://localhost:5173](http://localhost:5173)
+- Backend-Status: [http://localhost:3001/api/status](http://localhost:3001/api/status)
+
+### Was passiert beim ersten Start?
+- 🖼️ **5 Demo-Fotos** werden automatisch im `photos/` Ordner erstellt
+- 🚀 **Backend** startet auf Port 3001 (alle APIs funktional)
+- ✨ **Frontend** startet auf Port 5173 (Touch-optimierte UI)
+- 📱 **Browser öffnet automatisch** die Fotobox-Oberfläche
+
+### Testen der Demo
+- **Foto aufnehmen:** Klicke den großen Auslöser-Button
+- **Galerie:** Swipe durch alle Fotos (mit Maus ziehen)
+- **Zoom:** Mausrad oder Strg + Mausklick
+- **QR-Code:** Wird für jedes Foto generiert
+- **Admin:** Über das Einstellungen-Symbol (⚙️)
+
+---
+
+## �🛠️ Was du brauchst
 
 1. **Hardware**:
    - Raspberry Pi 5 (4GB oder 8GB RAM)
@@ -37,25 +109,38 @@ Diese Schritt-für-Schritt-Anleitung hilft dir, die Fotobox auf deinem Raspberry
 6. Warte bis zum Ende und stecke die SD-Karte in den Pi
 
 ### 2️⃣ Ersteinrichtung
-1. Schließe an:
-   - Touch-Display via USB-C & micro-HDMI
-   - Kamera via USB
-   - Netzteil
-2. Erster Start:
-   - Warte bis zum Desktop
-   - Führe die Ersteinrichtung durch
-   - Öffne ein Terminal mit Strg+Alt+T
+1. **Hardware anschließen:**
+   - Touch-Display: USB-C Kabel an Pi + micro-HDMI an Pi
+   - Kamera: USB-Kabel an Pi (Kamera einschalten!)
+   - Netzteil: USB-C an Pi (Pi startet automatisch)
+   - Ethernet oder WLAN für Internet-Zugang
+
+2. **Erster Start:**
+   - Warte bis Raspberry Pi Desktop erscheint (1-2 Minuten)
+   - Führe die Setup-Assistenten durch (Land, Sprache, WLAN)
+   - **Terminal öffnen:** Klicke auf das schwarze Terminal-Symbol ODER drücke Strg+Alt+T
+
+3. **Internet-Test:**
+   ```bash
+   ping -c 3 google.com
+   # Sollte "3 packets transmitted, 3 received" zeigen
+   ```
 
 ### 3️⃣ Software installieren
-Kopiere diese Befehle einzeln ins Terminal:
+Kopiere diese Befehle **einzeln** ins Terminal (nicht alle auf einmal!):
 
 ```bash
-# System aktualisieren
+# System aktualisieren (dauert 5-10 Minuten)
 sudo apt update && sudo apt upgrade -y
 
 # Node.js installieren
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt install -y nodejs git gphoto2
+
+# Prüfe ob Node.js installiert ist
+node --version
+npm --version
+# Sollte Version 20.x anzeigen
 
 # Variante 1: Direkt von GitHub (empfohlen)
 git clone https://github.com/deinname/photobooth
@@ -72,7 +157,7 @@ cd photobooth
 #   unzip photobooth.zip
 #   cd photobooth
 
-# Dependencies installieren
+# Dependencies installieren (dauert 2-3 Minuten)
 npm install
 cd backend && npm install
 cd ..
@@ -80,114 +165,42 @@ cd ..
 # Verzeichnisse anlegen
 mkdir -p photos branding
 sudo chown -R pi:pi photos branding
-
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
 ```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-# Photobooth für Raspberry Pi 5
-
-## Übersicht
-
-Diese Anwendung ist eine Fullstack-Fotobox für den Raspberry Pi 5 mit Touch-Display, gphoto2-kompatibler Kamera und GL-SFT1200 Router.
-
-### Features
-- Fotos aufnehmen, speichern und anzeigen
-- Galerie- und Einzelbildansicht
-- QR-Code-Generierung für Foto-Links
-- Admin-Oberfläche für WLAN und Fotoverwaltung
-- Touch-optimierte, moderne UI
-- REST-API für Frontend und Admin
-
-## Projektstruktur
-- **/src**: Frontend (React + TypeScript, Vite)
-- **/backend**: Backend (Node.js + Express, wird noch erstellt)
-- **/photos**: Gespeicherte Fotos
-
-## Setup & Start
-1. **Frontend installieren & starten**
-   ```bash
-   npm install
-   npm run dev
-   ```
-2. **Backend folgt**
-
-## Hinweise
-- Hardware-Integration (Kamera, GPIO) erfolgt im Backend.
-- Die Anwendung funktioniert auch offline im lokalen Netzwerk.
-
----
-
-Weitere Details und Backend-Code folgen.
 
 ### 4️⃣ Hardware anschließen
 
 1. **Kamera einrichten**:
    ```bash
+   # Wechsle ins photos-Verzeichnis
+   cd ~/photobooth/photos
+   
    # Teste ob die Kamera erkannt wird
    gphoto2 --auto-detect
-   # Sollte deine Kamera anzeigen
+   # Sollte deine Kamera anzeigen, z.B. "Canon EOS..." oder "Nikon D..."
    
-   # Teste Foto aufnehmen
+   # Teste Foto aufnehmen und downloaden
    gphoto2 --capture-image-and-download
+   
+   # Prüfe ob das Foto gespeichert wurde
+   ls -la *.jpg *.JPG 2>/dev/null || echo "Kein Foto gefunden - prüfe Kamera!"
    ```
-   - Falls Fehler: Kamera einschalten & in USB-Modus
+   - **Falls Fehler:** Kamera einschalten & in USB-Modus setzen
+   - **Falls "No camera found":** USB-Kabel prüfen, Kamera-Modus wechseln
 
-2. **GPIO-Pins (optional)**:
+2. **GPIO-Pins (optional, nur für physische Taster)**:
    ```bash
    # GPIO-Tools installieren
    sudo apt install -y python3-gpiozero
    
-   # Verbinde wie folgt:
-   # - Auslöser: Pin 17 -> Taster -> GND
-   # - Timer: Pin 27 -> Taster -> GND
-   # - LED: Pin 22 -> LED -> 220Ω -> GND
+   # Verkabelung (nur bei physischen Tastern):
+   # - Auslöser: Pin 17 (GPIO17) -> Taster -> GND (Pin 20)
+   # - Timer: Pin 27 (GPIO27) -> Taster -> GND (Pin 25) 
+   # - LED: Pin 22 (GPIO22) -> LED (lange Seite) -> 220Ω Widerstand -> GND (Pin 30)
+   
+   # Test GPIO (optional):
+   python3 -c "import RPi.GPIO as GPIO; GPIO.setmode(GPIO.BCM); print('GPIO funktioniert!')"
    ```
+   **Hinweis:** Die Fotobox funktioniert auch ohne GPIO-Taster (nur Touch-Display).
 
 3. **Router einrichten**:
    - Verbinde GL-SFT1200 mit USB
@@ -197,110 +210,237 @@ Weitere Details und Backend-Code folgen.
 
 ### 5️⃣ Fotobox starten
 
-1. **Entwicklungsmodus** (zum Testen):
+**🚨 WICHTIG: Führe diese Schritte in der richtigen Reihenfolge aus!**
+
+1. **Entwicklungsmodus** (zum Testen - empfohlen für Anfänger):
+   
+   **Terminal 1: Backend starten**
    ```bash
-   # Terminal 1: Frontend
+   cd ~/photobooth/backend
+   
+   # Für GPIO-Taster: Mit sudo starten
+   sudo npm run dev
+   
+   # ODER ohne GPIO-Taster: Normal starten  
+   # npm run dev
+   ```
+   **Warte bis "Server running on port 3001" erscheint!**
+
+   **Terminal 2: Frontend starten** (neues Terminal öffnen: Strg+Shift+T)
+   ```bash
    cd ~/photobooth
    npm run dev
-
-   # Terminal 2: Backend
-   cd ~/photobooth/backend
-   npm run dev
    ```
+   **Warte bis "Local: http://localhost:5173" erscheint!**
 
-2. **Produktionsmodus** (automatischer Start):
+   **✅ Test: Gehe zu http://localhost:5173 im Browser**
+   - Du solltest die Fotobox-Oberfläche sehen
+   - Teste den "Foto aufnehmen" Button
+   - Prüfe ob Fotos in der Galerie erscheinen
+
+   **🎉 Geschafft! Die Fotobox läuft im Entwicklungsmodus.**
+   
+   **Für dauerhafte Nutzung:** Fahre mit Schritt 2 (Produktionsmodus) fort.
+
+2. **Produktionsmodus** (automatischer Start beim Boot):
+   
+   **Schritt 1: Service-Datei erstellen**
    ```bash
-   # Erstelle Systemd Service
    sudo nano /etc/systemd/system/photobooth.service
    ```
-   Füge ein:
+   
+   **Schritt 2: Folgenden Inhalt in die Datei einfügen:**
    ```ini
    [Unit]
-   Description=Photobooth
+   Description=Photobooth Service
    After=network.target
-
+   
    [Service]
-   ExecStart=/usr/bin/npm start
-   WorkingDirectory=/home/pi/photobooth
+   Type=simple
    User=pi
-   Environment=NODE_ENV=production
+   WorkingDirectory=/home/pi/photobooth/backend
+   ExecStart=/usr/bin/node server.js
    Restart=always
-
+   RestartSec=3
+   Environment=NODE_ENV=production
+   
    [Install]
    WantedBy=multi-user.target
    ```
-   Dann:
+   
+   **Schritt 3: Datei speichern und schließen**
+   - Drücke `Ctrl+X`
+   - Dann `Y` für "Yes"
+   - Dann `Enter` zum Bestätigen
+   
+   **Schritt 4: Service aktivieren und starten**
    ```bash
-   # Service aktivieren
+   # Service neu laden
+   sudo systemctl daemon-reload
+   
+   # Service beim Boot aktivieren
    sudo systemctl enable photobooth
+   
+   # Service sofort starten
    sudo systemctl start photobooth
    
    # Status prüfen
    systemctl status photobooth
+   
+   # Logs anzeigen (falls Probleme)
+   journalctl -u photobooth -f
    ```
 
 ## 🎯 Testen
 
-1. **Öffne Chrome im Kiosk-Modus**:
+### Schnelltest für Einsteiger:
+
+1. **Öffne die Fotobox:**
+   ```bash
+   # Im Browser (oder Chrome öffnen und eingeben):
+   http://localhost:5173
+   ```
+
+2. **Teste alle Funktionen der Reihe nach:**
+   - [ ] **Foto aufnehmen:** Klicke den großen "Foto aufnehmen" Button
+   - [ ] **Galerie:** Wische links/rechts durch die Fotos
+   - [ ] **QR-Code:** Erscheint nach Foto-Aufnahme für Handy-Download
+   - [ ] **Timer:** Klicke Timer-Button (3/5/10s Countdown)
+   - [ ] **GPIO-Taster:** Drücke physischen Auslöser (falls angeschlossen)
+   - [ ] **Admin-Panel:** Gehe zu http://localhost:5173/admin
+
+3. **Vollbildmodus (für echte Fotobox):**
    ```bash
    chromium-browser --kiosk http://localhost:5173
    ```
+   **Beenden:** Alt+F4 oder Strg+Alt+T für Terminal
 
-2. **Funktionen testen**:
-   - [ ] Touch & Swipe in Galerie
-   - [ ] Foto aufnehmen (Touch & Buttons)
-   - [ ] Timer (3/5/10s)
-   - [ ] QR-Codes scannen
-   - [ ] Admin-Panel (`http://localhost:5173/admin`)
+### Troubleshooting:
+- **Frontend lädt nicht:** Prüfe Terminal-Ausgabe, oft Port bereits belegt
+- **Foto-Button funktioniert nicht:** Backend läuft nicht oder Kamera-Problem  
+- **GPIO-Fehler:** Programm mit `sudo` starten oder GPIO deaktivieren
+- **Kamera nicht gefunden:** USB-Kabel prüfen, Kamera in richtigen Modus
+- **QR-Codes funktionieren nicht:** IP-Adresse wird automatisch erkannt
+- **"Cannot GET /api/..."**: Backend nicht gestartet oder falscher Port
+
+### Windows Demo Troubleshooting:
+- **"Port 3001 bereits verwendet":** Stoppe alle Node.js Prozesse: `taskkill /F /IM node.exe`
+- **"command not found":** Git und Node.js installieren (siehe Links oben)
+- **PowerShell vs CMD:** Verwende PowerShell für bessere Kompatibilität
+- **Fotos werden nicht angezeigt:** Backend muss zuerst laufen (Port 3001)
+- **Browser öffnet nicht automatisch:** Manuell zu [http://localhost:5173](http://localhost:5173)
+
+### API-Test (für Entwickler):
+```bash
+# Teste Backend-Verbindung:
+curl http://localhost:3001/api/photos
+
+# Teste Foto-API:  
+curl -X POST http://localhost:3001/api/camera/shoot
+
+# Teste QR-Code:
+curl http://localhost:3001/api/qrcode/last
+```
 
 ## 🚨 Problembehebung
 
-### Kamera wird nicht erkannt
+### Die häufigsten Probleme und Lösungen:
+
+#### Backend startet nicht
+```bash
+# 1. Prüfe ob Node.js installiert ist
+node --version
+
+# 2. Prüfe ob im richtigen Ordner
+pwd
+# Sollte /home/pi/photobooth/backend zeigen
+
+# 3. Installiere fehlende Pakete
+npm install
+
+# 4. Starte mit Details
+npm run dev
+```
+
+#### GPIO-Fehler "EINVAL: invalid argument"
+```bash
+# Lösung 1: Mit sudo starten
+sudo npm run dev
+
+# Lösung 2: GPIO deaktivieren (bearbeite backend/server.js)
+# Kommentiere GPIO-Zeilen aus oder setze NODE_ENV=development
+
+# Lösung 3: Prüfe Hardware
+ls -l /dev/gpiomem
+```
+
+#### Kamera wird nicht erkannt
 ```bash
 # USB-Verbindung prüfen
-lsusb
-# Sollte deine Kamera zeigen
+lsusb | grep -i canon
+# oder
+lsusb | grep -i nikon
 
 # gphoto2 Kamera-Liste
 gphoto2 --list-cameras
+
+# Kamera neu anschließen
+# 1. USB-Kabel ab
+# 2. Kamera aus/ein  
+# 3. USB wieder an
+# 4. gphoto2 --auto-detect
 ```
 
-### GPIO-Fehler
+#### Frontend lädt nicht (localhost:5173)
 ```bash
-# Berechtigungen prüfen
-ls -l /dev/gpiomem
-# Sollte pi-Gruppe gehören
+# Prüfe ob Vite läuft
+ps aux | grep vite
 
-# GPIO-Status
-gpio readall
+# Port bereits belegt?
+netstat -tlnp | grep 5173
+
+# Neustart mit anderem Port
+npm run dev -- --port 3000
 ```
 
-### Dienst startet nicht
+#### "Permission denied" oder "EACCES" Fehler
 ```bash
-# Logs anzeigen
-journalctl -u photobooth -f
+# Ordner-Berechtigungen reparieren
+sudo chown -R pi:pi ~/photobooth
+chmod -R 755 ~/photobooth
 
-# Neustart erzwingen
-sudo systemctl restart photobooth
+# Node modules neu installieren
+rm -rf node_modules package-lock.json
+npm install
 ```
 
 ## 📱 Benutzung
 
+### Erste Schritte nach dem Start:
+
+1. **Fotobox öffnen:** Gehe zu http://localhost:5173 in deinem Browser
+2. **Erstes Foto:** Klicke den großen "Foto aufnehmen" Button 
+3. **Foto anschauen:** Das Foto erscheint automatisch in der Galerie
+4. **QR-Code:** Scanne den QR-Code mit dem Handy für Download
+5. **Durch Fotos wischen:** Touch oder Pfeiltasten verwenden
+
+### Bedienung:
+
 1. **Fotos aufnehmen**:
-   - Touch: Großer Button unten = Sofortauslösung
-   - Touch: Timer-Button links = 3/5/10s Countdown
-   - Physisch: Kurzer Druck = Sofort, Langer Druck = Timer
+   - **Touch:** Großer Button unten = Sofortauslösung
+   - **Touch:** Timer-Button links = 3/5/10s Countdown  
+   - **Physisch:** Kurzer Tastendruck = Sofort, Langer Druck = Timer (falls GPIO angeschlossen)
 
 2. **Fotos teilen**:
-   - QR-Code erscheint nach Aufnahme
-   - Führt direkt zum Foto
-   - Funktioniert im lokalen WLAN
+   - QR-Code erscheint nach jeder Aufnahme
+   - QR-Code führt direkt zum Foto-Download
+   - Funktioniert im lokalen WLAN (Handy muss im gleichen Netz sein)
 
 3. **Admin-Zugriff**:
    - URL: http://localhost:5173/admin
-   - Fotos löschen
-   - WLAN konfigurieren
-   - Branding anpassen
+   - Fotos löschen und verwalten
+   - WLAN konfigurieren (Router-Einstellungen)
+   - Branding/Logo anpassen
 
 ## 🆘 Hilfe & Support
 
@@ -362,7 +502,19 @@ sudo systemctl restart photobooth
    # und ersetze DEIN_USERNAME mit deinem GitHub Benutzernamen:
    git remote add origin https://github.com/DEIN_USERNAME/photobooth.git
    git branch -M main
+
+   # 5. Personal Access Token erstellen (für Push-Berechtigung):
+   # - GitHub.com → Profilbild → Settings → Developer settings
+   # - Personal access tokens → Tokens (classic) → Generate new token
+   # - Note: "Photobooth"
+   # - Berechtigungen: [x] repo
+   # - Token sofort kopieren!
+   
+   # 6. Code auf GitHub hochladen:
    git push -u origin main
+   # Bei Nachfrage nach Anmeldedaten:
+   # - Username: dein GitHub-Username
+   # - Passwort: füge den Token ein (nicht dein GitHub-Passwort!)
    ```
 
 3. **Updates auf GitHub pushen**:

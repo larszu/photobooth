@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "start-windows": "node server-windows.js"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -16,8 +17,10 @@
     "cors": "^2.8.5",
     "express": "^4.19.2",
     "express-fileupload": "^1.5.1",
+    "multer": "^2.0.1",
     "qrcode": "^1.5.3",
-    "react-router-dom": "^7.6.3"
+    "react-router-dom": "^7.6.3",
+    "sharp": "^0.34.2"
   },
   "devDependencies": {
     "jest": "^30.0.4",

@@ -15,7 +15,7 @@ import fileUpload from 'express-fileupload';
 const __dirname = path.resolve();
 const app = express();
 const PORT = 3001;
-const PHOTOS_DIR = path.join(__dirname, 'photos');
+const PHOTOS_DIR = path.join(__dirname, '..', 'photos'); // Ein Verzeichnis nach oben
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -71,9 +71,9 @@ app.get('/api/qrcode', async (req, res) => {
   const { mode, photo } = req.query;
   let url;
   if (mode === 'single' && photo) {
-    url = `http://<pi-ip>:3001/photos/${photo}`;
+    url = `http://${req.get('host')}/photos/${photo}`;
   } else {
-    url = `http://<pi-ip>:3001/gallery`;
+    url = `http://${req.get('host')}/gallery`;
   }
   try {
     const qr = await QRCode.toDataURL(url);
@@ -116,7 +116,7 @@ app.get('/api/qrcode/last', async (req, res) => {
     const photos = files.filter(f => f.endsWith('.jpg')).sort();
     if (photos.length === 0) return res.status(404).json({ error: 'Kein Foto vorhanden' });
     const lastPhoto = photos[photos.length - 1];
-    const url = `http://<pi-ip>:3001/photos/${lastPhoto}`;
+    const url = `http://${req.get('host')}/photos/${lastPhoto}`;
     try {
       const qr = await QRCode.toDataURL(url);
       res.json({ qr, url, filename: lastPhoto });

@@ -3,7 +3,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AppProvider } from './context/AppContext';
 import GalleryPage from './pages/GalleryPage';
 import PhotoPage from './pages/PhotoPage';
+import PhotoViewPage from './pages/PhotoViewPage';
 import AdminPage from './pages/AdminPage';
+import TrashPage from './pages/TrashPage';
 import CssBaseline from '@mui/material/CssBaseline';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 
@@ -24,8 +26,10 @@ const App: React.FC = () => (
         <Routes>
           <Route path="/" element={<Navigate to="/gallery" />} />
           <Route path="/gallery" element={<GalleryPage />} />
-          <Route path="/photo/:id" element={<PhotoPage />} />
+          <Route path="/photo/new" element={<PhotoPage />} />
+          <Route path="/view/:id" element={<PhotoViewPage />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/trash" element={<TrashPage />} />
         </Routes>
       </Router>
     </AppProvider>

@@ -13,13 +13,37 @@ if (!fs.existsSync(BRANDING_DIR)) fs.mkdirSync(BRANDING_DIR);
 
 // POST /api/admin/branding/logo
 router.post('/logo', (req, res) => {
-  if (!req.files || !req.files.logo) return res.status(400).json({ error: 'No file uploaded' });
-  const logo = req.files.logo;
-  logo.mv(LOGO_PATH, err => {
-    if (err) return res.status(500).json({ error: 'Upload failed' });
-    saveBrandingConfig({ type: 'logo' });
-    res.json({ success: true });
-  });
+  try {
+    if (!req.files || !req.files.logo) {
+      return res.status(400).json({ success: false, error: 'No file uploaded' });
+    }
+    
+    const logo = req.files.logo;
+    
+    // Validiere Dateityp
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(logo.mimetype)) {
+      return res.status(400).json({ success: false, error: 'Nur Bilddateien erlaubt (JPEG, PNG, GIF, WebP)' });
+    }
+    
+    // Validiere Dateigröße (5MB max)
+    if (logo.size > 5 * 1024 * 1024) {
+      return res.status(400).json({ success: false, error: 'Datei zu groß (max. 5MB)' });
+    }
+    
+    logo.mv(LOGO_PATH, err => {
+      if (err) {
+        console.error('Logo upload error:', err);
+        return res.status(500).json({ success: false, error: 'Upload failed' });
+      }
+      
+      saveBrandingConfig({ type: 'logo' });
+      res.json({ success: true, message: 'Logo erfolgreich gespeichert' });
+    });
+  } catch (error) {
+    console.error('Logo upload error:', error);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
 });
 
 // POST /api/admin/branding/text
@@ -40,11 +64,28 @@ router.get('/logo-qr', async (req, res) => {
 
 // GET /api/branding
 router.get('/branding', (req, res) => {
-  const config = loadBrandingConfig();
-  let logo = null, text = '';
-  if (fs.existsSync(LOGO_PATH)) logo = '/branding/logo.png';
-  if (fs.existsSync(TEXT_PATH)) text = fs.readFileSync(TEXT_PATH, 'utf8');
-  res.json({ ...config, logo, text });
+  try {
+    const config = loadBrandingConfig();
+    let logo = null, text = '';
+    
+    if (fs.existsSync(LOGO_PATH)) {
+      logo = '/branding/logo.png';
+    }
+    
+    if (fs.existsSync(TEXT_PATH)) {
+      text = fs.readFileSync(TEXT_PATH, 'utf8');
+    }
+    
+    res.json({ 
+      success: true,
+      type: config.type || 'text',
+      logo, 
+      text: config.text || text
+    });
+  } catch (error) {
+    console.error('Branding config error:', error);
+    res.status(500).json({ success: false, error: 'Failed to load branding config' });
+  }
 });
 
 // Serve logo file
