@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Box, Typography, AppBar, Toolbar, IconButton } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ShareIcon from '@mui/icons-material/Share';
@@ -9,6 +9,9 @@ import SmartShareV2Dialog from '../components/SmartShareV2Dialog';
 const PhotoViewPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const decodedId = id ? decodeURIComponent(id) : '';
+  const location = useLocation();
+  const navigate = useNavigate();
+  
   const [qr, setQr] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [isZoomed, setIsZoomed] = useState(false);
@@ -21,8 +24,35 @@ const PhotoViewPage: React.FC = () => {
   const [branding, setBranding] = useState<{ type: 'logo' | 'text', logo?: string, text?: string }>({ type: 'text', text: '' });
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [shareV2DialogOpen, setShareV2DialogOpen] = useState(false);
-  const navigate = useNavigate();
   const imgRef = useRef<HTMLImageElement>(null);
+
+  // Intelligente Navigation: Bestimme die korrekte Zurück-URL
+  const getBackUrl = () => {
+    // Check if we came from a specific folder view based on the URL state
+    const fromPath = (location.state as any)?.from;
+    
+    if (fromPath) {
+      return fromPath;
+    }
+    
+    // Fallback: Extract folder from photo path and determine back URL
+    if (decodedId.includes('/')) {
+      const folderName = decodedId.split('/')[0];
+      // Check if this looks like a date folder (YYYYMMDD_Photobooth)
+      if (/^\d{8}_Photobooth$/.test(folderName)) {
+        return `/gallery/folder/${encodeURIComponent(folderName)}`;
+      }
+    }
+    
+    // Default fallback to main gallery overview
+    return '/gallery';
+  };
+
+  const handleBackNavigation = () => {
+    const backUrl = getBackUrl();
+    console.log('Navigating back to:', backUrl);
+    navigate(backUrl);
+  };
 
   // Lade QR-Code für das Foto
   useEffect(() => {
@@ -91,7 +121,7 @@ const PhotoViewPage: React.FC = () => {
     if (isZoomed) {
       if (zoom < 1.1) {
         // Rauszoomen: zurück zur Galerie
-        navigate('/gallery');
+        handleBackNavigation();
       }
       setIsZoomed(false);
       setZoom(1);
@@ -137,7 +167,7 @@ const PhotoViewPage: React.FC = () => {
         >
           <IconButton 
             color="inherit" 
-            onClick={() => navigate('/gallery')}
+            onClick={handleBackNavigation}
             sx={{
               p: { xs: 1, sm: 1.5 },
               '& .MuiSvgIcon-root': {
@@ -261,7 +291,7 @@ const PhotoViewPage: React.FC = () => {
                 },
                 transition: 'all 0.2s'
               }}
-              onClick={() => navigate('/gallery')}
+              onClick={handleBackNavigation}
             >
               <ArrowBackIcon sx={{ fontSize: 20 }} />
             </Box>

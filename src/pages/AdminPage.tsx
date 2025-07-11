@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Typography, AppBar, Toolbar, IconButton, Button, TextField, Snackbar, Alert, ToggleButtonGroup, ToggleButton, Slider, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Box, Typography, AppBar, Toolbar, IconButton, Button, TextField, Snackbar, Alert, ToggleButtonGroup, ToggleButton, Slider, Dialog, DialogTitle, DialogContent, DialogActions, Breadcrumbs, Link } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RestoreFromTrashIcon from '@mui/icons-material/RestoreFromTrash';
@@ -8,6 +8,8 @@ import BrandingWatermarkIcon from '@mui/icons-material/BrandingWatermark';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
 import UploadIcon from '@mui/icons-material/Upload';
 import PaletteIcon from '@mui/icons-material/Palette';
+import HomeIcon from '@mui/icons-material/Home';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import { useNavigate } from 'react-router-dom';
 
 const AdminPage: React.FC = () => {
@@ -345,6 +347,33 @@ const AdminPage: React.FC = () => {
           width: '100%'
         }}
       >
+        {/* Breadcrumb Navigation */}
+        <Breadcrumbs 
+          aria-label="breadcrumb" 
+          sx={{ mb: { xs: 2, md: 3 } }}
+        >
+          <Link 
+            underline="hover" 
+            color="inherit" 
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              navigate('/gallery');
+            }}
+            sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+          >
+            <HomeIcon fontSize="inherit" />
+            Home
+          </Link>
+          <Typography 
+            color="text.primary"
+            sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+          >
+            <AdminPanelSettingsIcon fontSize="inherit" />
+            Admin
+          </Typography>
+        </Breadcrumbs>
+
         {/* WLAN Section */}
         <Typography 
           variant="h6" 

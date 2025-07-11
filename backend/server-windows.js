@@ -236,6 +236,88 @@ app.get('/api/photos', (req, res) => {
   }
 });
 
+// Neue Route: Alle Foto-Ordner mit Metadaten auflisten
+app.get('/api/folders', (req, res) => {
+  try {
+    const folders = getAllPhotoFolders();
+    const foldersWithMetadata = folders.map(folderName => {
+      const folderPath = path.join(PHOTOS_DIR, folderName);
+      const files = fs.readdirSync(folderPath);
+      const photos = files.filter(file => /\.(jpg|jpeg|png|svg)$/i.test(file));
+      
+      // Erste Foto als Thumbnail
+      const firstPhoto = photos.length > 0 ? photos[0] : null;
+      
+      // Datum aus Ordnername extrahieren (YYYYMMDD_Photobooth)
+      const dateMatch = folderName.match(/^(\d{4})(\d{2})(\d{2})_Photobooth$/);
+      const date = dateMatch ? `${dateMatch[3]}.${dateMatch[2]}.${dateMatch[1]}` : folderName;
+      
+      return {
+        name: folderName,
+        displayName: date,
+        photoCount: photos.length,
+        thumbnail: firstPhoto ? `/api/photos/${encodeURIComponent(firstPhoto)}/thumbnail?size=300` : null,
+        path: folderName
+      };
+    });
+
+    res.json({
+      success: true,
+      folders: foldersWithMetadata
+    });
+  } catch (error) {
+    console.error('❌ Error listing folders:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Fehler beim Auflisten der Ordner: ' + error.message
+    });
+  }
+});
+
+// Fotos eines bestimmten Ordners auflisten
+app.get('/api/folders/:folderName/photos', (req, res) => {
+  try {
+    const { folderName } = req.params;
+    const folderPath = path.join(PHOTOS_DIR, folderName);
+    
+    if (!fs.existsSync(folderPath)) {
+      return res.status(404).json({
+        success: false,
+        message: 'Ordner nicht gefunden'
+      });
+    }
+
+    const files = fs.readdirSync(folderPath);
+    const photos = files
+      .filter(file => /\.(jpg|jpeg|png|svg)$/i.test(file))
+      .map(file => {
+        const filepath = path.join(folderPath, file);
+        const stats = fs.statSync(filepath);
+        return {
+          filename: file,
+          path: `/photos/${folderName}/${file}`,
+          folder: folderName,
+          size: stats.size,
+          created: stats.ctime.toISOString()
+        };
+      })
+      .sort((a, b) => new Date(b.created) - new Date(a.created));
+
+    res.json({
+      success: true,
+      folder: folderName,
+      photos: photos,
+      count: photos.length
+    });
+  } catch (error) {
+    console.error('❌ Error listing folder photos:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Fehler beim Auflisten der Ordner-Fotos: ' + error.message
+    });
+  }
+});
+
 // Server Status
 app.get('/api/status', (req, res) => {
   console.log('📊 Status request received');
@@ -547,36 +629,78 @@ app.post('/api/trash/:filename/restore', (req, res) => {
       });
     }
     
-    // Bestimme den ursprünglichen Speicherort
-    // Falls das Foto einen Datum-Ordner hatte, stelle es in den heutigen Ordner wieder her
-    const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
-    const todayFolderName = `${today.slice(0, 4)}${today.slice(4, 6)}${today.slice(6)}_Photobooth`;
-    const todayFolder = path.join(PHOTOS_DIR, todayFolderName);
+    // Metadaten laden um ursprünglichen Ordner zu finden
+    const metadataPath = path.join(TRASH_DIR, '.metadata.json');
+    let originalFolder = null;
+    let originalName = filename;
     
-    // Erstelle den heutigen Ordner falls er nicht existiert
-    if (!fs.existsSync(todayFolder)) {
-      fs.mkdirSync(todayFolder, { recursive: true });
+    if (fs.existsSync(metadataPath)) {
+      try {
+        const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+        if (metadata[filename]) {
+          originalFolder = metadata[filename].originalFolder;
+          originalName = metadata[filename].originalName;
+          console.log(`📋 Found metadata: ${filename} -> original folder: ${originalFolder}`);
+        }
+      } catch (error) {
+        console.warn('⚠️ Could not read metadata file');
+      }
     }
     
-    const restorePath = path.join(todayFolder, filename);
+    // Bestimme den Zielordner
+    let targetFolder;
+    if (originalFolder) {
+      // Wiederherstellen in ursprünglichen Ordner
+      targetFolder = path.join(PHOTOS_DIR, originalFolder);
+      // Erstelle den ursprünglichen Ordner falls er nicht mehr existiert
+      if (!fs.existsSync(targetFolder)) {
+        fs.mkdirSync(targetFolder, { recursive: true });
+        console.log(`📁 Recreated original folder: ${originalFolder}`);
+      }
+    } else {
+      // Fallback: heutigen Ordner verwenden
+      const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+      const todayFolderName = `${today.slice(0, 4)}${today.slice(4, 6)}${today.slice(6)}_Photobooth`;
+      targetFolder = path.join(PHOTOS_DIR, todayFolderName);
+      // Erstelle den heutigen Ordner falls er nicht existiert
+      if (!fs.existsSync(targetFolder)) {
+        fs.mkdirSync(targetFolder, { recursive: true });
+      }
+      console.log(`📁 Using fallback folder (no metadata): ${todayFolderName}`);
+    }
+    
+    const restorePath = path.join(targetFolder, originalName);
     
     // Falls eine Datei mit dem gleichen Namen bereits existiert, füge Timestamp hinzu
     let finalRestorePath = restorePath;
     if (fs.existsSync(restorePath)) {
-      const ext = path.extname(filename);
-      const basename = path.basename(filename, ext);
+      const ext = path.extname(originalName);
+      const basename = path.basename(originalName, ext);
       const timestamp = Date.now();
-      finalRestorePath = path.join(todayFolder, `${basename}_restored_${timestamp}${ext}`);
+      finalRestorePath = path.join(targetFolder, `${basename}_restored_${timestamp}${ext}`);
     }
     
     // Datei aus dem Papierkorb zurück verschieben
     fs.renameSync(trashPath, finalRestorePath);
-    console.log(`✅ Restored: ${filename} -> ${path.relative(PHOTOS_DIR, finalRestorePath)}`);
+    
+    // Metadaten-Eintrag entfernen
+    if (fs.existsSync(metadataPath)) {
+      try {
+        const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+        delete metadata[filename];
+        fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
+      } catch (error) {
+        console.warn('⚠️ Could not update metadata file');
+      }
+    }
+    
+    console.log(`✅ Restored: ${filename} -> ${path.relative(PHOTOS_DIR, finalRestorePath)} (to original folder: ${originalFolder || 'fallback'})`);
     
     res.json({
       success: true,
-      message: `Foto "${filename}" wurde wiederhergestellt`,
-      restoredTo: path.relative(PHOTOS_DIR, finalRestorePath)
+      message: `Foto "${originalName}" wurde in "${path.basename(targetFolder)}" wiederhergestellt`,
+      restoredTo: path.relative(PHOTOS_DIR, finalRestorePath),
+      originalFolder: originalFolder || 'fallback'
     });
   } catch (error) {
     console.error('❌ Error restoring photo:', error);
@@ -621,6 +745,17 @@ app.delete('/api/trash', (req, res) => {
       }
     });
     
+    // Metadaten-Datei ebenfalls löschen/zurücksetzen
+    const metadataPath = path.join(TRASH_DIR, '.metadata.json');
+    if (fs.existsSync(metadataPath)) {
+      try {
+        fs.unlinkSync(metadataPath);
+        console.log('✅ Metadata file removed');
+      } catch (metaError) {
+        console.warn('⚠️ Could not remove metadata file:', metaError);
+      }
+    }
+    
     console.log(`🗑️ Trash emptied: ${deletedCount} deleted, ${errorCount} errors`);
     
     res.json({
@@ -634,6 +769,215 @@ app.delete('/api/trash', (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Fehler beim Leeren des Papierkorbs: ' + error.message
+    });
+  }
+});
+
+// === EINZELNE FOTO/ORDNER PAPIERKORB APIs ===
+
+// Einzelnes Foto in den Papierkorb verschieben
+app.post('/api/photos/:filename/trash', (req, res) => {
+  try {
+    const { filename } = req.params;
+    console.log(`🗑️ POST /api/photos/${filename}/trash called`);
+    
+    // Suche das Foto in allen Ordnern
+    let sourceFile = null;
+    let sourcePath = null;
+    
+    // Prüfe alle Unterordner in PHOTOS_DIR
+    const findPhotoInFolders = (dir) => {
+      const folders = fs.readdirSync(dir, { withFileTypes: true })
+        .filter(dirent => dirent.isDirectory())
+        .map(dirent => path.join(dir, dirent.name));
+      
+      for (const folder of folders) {
+        const photoPath = path.join(folder, filename);
+        if (fs.existsSync(photoPath)) {
+          return photoPath;
+        }
+      }
+      return null;
+    };
+    
+    sourcePath = findPhotoInFolders(PHOTOS_DIR);
+    
+    if (!sourcePath) {
+      return res.status(404).json({
+        success: false,
+        message: `Foto nicht gefunden: ${filename}`
+      });
+    }
+    
+    // Ziel im Papierkorb
+    const targetPath = path.join(TRASH_DIR, filename);
+    
+    // Wenn bereits im Papierkorb, Dateiname ändern
+    let finalTargetPath = targetPath;
+    let counter = 1;
+    while (fs.existsSync(finalTargetPath)) {
+      const ext = path.extname(filename);
+      const basename = path.basename(filename, ext);
+      finalTargetPath = path.join(TRASH_DIR, `${basename}_${counter}${ext}`);
+      counter++;
+    }
+    
+    // Ursprünglichen Ordner ermitteln
+    const originalFolder = path.basename(path.dirname(sourcePath));
+    
+    // Foto verschieben
+    fs.renameSync(sourcePath, finalTargetPath);
+    
+    // Metadaten für Wiederherstellung speichern
+    const metadataPath = path.join(TRASH_DIR, '.metadata.json');
+    let metadata = {};
+    if (fs.existsSync(metadataPath)) {
+      try {
+        metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+      } catch (error) {
+        console.warn('⚠️ Could not read metadata file, creating new one');
+        metadata = {};
+      }
+    }
+    
+    // Metadaten für dieses Foto hinzufügen
+    metadata[path.basename(finalTargetPath)] = {
+      originalName: filename,
+      originalFolder: originalFolder,
+      deletedAt: new Date().toISOString()
+    };
+    
+    // Metadaten speichern
+    fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
+    
+    console.log(`✅ Photo moved to trash: ${filename} -> ${path.basename(finalTargetPath)} (from ${originalFolder})`);
+    
+    res.json({
+      success: true,
+      message: `Foto "${filename}" in den Papierkorb verschoben`,
+      originalName: filename,
+      trashName: path.basename(finalTargetPath),
+      originalFolder: originalFolder
+    });
+  } catch (error) {
+    console.error(`❌ Error moving photo ${req.params.filename} to trash:`, error);
+    res.status(500).json({
+      success: false,
+      message: 'Fehler beim Verschieben ins Papierkorb: ' + error.message
+    });
+  }
+});
+
+// Alle Fotos eines Ordners in den Papierkorb verschieben
+app.post('/api/folders/:folderName/trash', (req, res) => {
+  try {
+    const { folderName } = req.params;
+    console.log(`🗑️ POST /api/folders/${folderName}/trash called`);
+    
+    const folderPath = path.join(PHOTOS_DIR, folderName);
+    
+    if (!fs.existsSync(folderPath)) {
+      return res.status(404).json({
+        success: false,
+        message: `Ordner nicht gefunden: ${folderName}`
+      });
+    }
+    
+    // Alle Fotos im Ordner finden
+    const allFiles = fs.readdirSync(folderPath);
+    const photoFiles = allFiles.filter(file => {
+      const ext = path.extname(file).toLowerCase();
+      return ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'].includes(ext);
+    });
+    
+    if (photoFiles.length === 0) {
+      return res.json({
+        success: true,
+        message: `Ordner "${folderName}" ist bereits leer`,
+        movedCount: 0
+      });
+    }
+    
+    let movedCount = 0;
+    let errorCount = 0;
+    const movedFiles = [];
+    
+    // Metadaten laden/erstellen
+    const metadataPath = path.join(TRASH_DIR, '.metadata.json');
+    let metadata = {};
+    if (fs.existsSync(metadataPath)) {
+      try {
+        metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+      } catch (error) {
+        console.warn('⚠️ Could not read metadata file, creating new one');
+        metadata = {};
+      }
+    }
+    
+    // Jedes Foto in den Papierkorb verschieben
+    photoFiles.forEach(file => {
+      try {
+        const sourcePath = path.join(folderPath, file);
+        let targetPath = path.join(TRASH_DIR, file);
+        
+        // Wenn bereits im Papierkorb, Dateiname ändern
+        let counter = 1;
+        while (fs.existsSync(targetPath)) {
+          const ext = path.extname(file);
+          const basename = path.basename(file, ext);
+          targetPath = path.join(TRASH_DIR, `${basename}_${counter}${ext}`);
+          counter++;
+        }
+        
+        fs.renameSync(sourcePath, targetPath);
+        
+        // Metadaten für dieses Foto hinzufügen
+        metadata[path.basename(targetPath)] = {
+          originalName: file,
+          originalFolder: folderName,
+          deletedAt: new Date().toISOString()
+        };
+        
+        movedFiles.push({
+          original: file,
+          trash: path.basename(targetPath)
+        });
+        movedCount++;
+        console.log(`✅ Photo moved to trash: ${file} -> ${path.basename(targetPath)} (from ${folderName})`);
+      } catch (moveError) {
+        console.error(`❌ Error moving ${file} to trash:`, moveError);
+        errorCount++;
+      }
+    });
+    
+    // Metadaten speichern
+    fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
+    
+    // Ordner löschen wenn er jetzt leer ist
+    try {
+      const remainingFiles = fs.readdirSync(folderPath);
+      if (remainingFiles.length === 0) {
+        fs.rmdirSync(folderPath);
+        console.log(`📁 Empty folder removed: ${folderName}`);
+      }
+    } catch (removeError) {
+      console.log(`⚠️ Could not remove empty folder ${folderName}:`, removeError.message);
+    }
+    
+    console.log(`🗑️ Folder content moved to trash: ${movedCount} photos moved, ${errorCount} errors`);
+    
+    res.json({
+      success: true,
+      message: `${movedCount} Fotos aus "${folderName}" in den Papierkorb verschoben`,
+      movedCount: movedCount,
+      errors: errorCount,
+      movedFiles: movedFiles
+    });
+  } catch (error) {
+    console.error(`❌ Error moving folder ${req.params.folderName} to trash:`, error);
+    res.status(500).json({
+      success: false,
+      message: 'Fehler beim Verschieben des Ordner-Inhalts: ' + error.message
     });
   }
 });

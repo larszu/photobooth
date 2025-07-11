@@ -2,6 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
 import GalleryPage from './pages/GalleryPage';
+import FoldersOverviewPage from './pages/FoldersOverviewPage';
+import FolderGalleryPage from './pages/FolderGalleryPage';
 import PhotoPage from './pages/PhotoPage';
 import PhotoViewPage from './pages/PhotoViewPage';
 import AdminPage from './pages/AdminPage';
@@ -25,7 +27,9 @@ const App: React.FC = () => (
       <Router>
         <Routes>
           <Route path="/" element={<Navigate to="/gallery" />} />
-          <Route path="/gallery" element={<GalleryPage />} />
+          <Route path="/gallery" element={<FoldersOverviewPage />} />
+          <Route path="/gallery/all" element={<GalleryPage />} />
+          <Route path="/gallery/folder/:folderName" element={<FolderGalleryPage />} />
           <Route path="/photo/new" element={<PhotoPage />} />
           <Route path="/view/:id" element={<PhotoViewPage />} />
           <Route path="/admin" element={<AdminPage />} />

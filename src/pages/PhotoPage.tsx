@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Typography, AppBar, Toolbar, IconButton, Button, Dialog } from '@mui/material';
+import { Box, Typography, AppBar, Toolbar, IconButton, Button, Dialog, Breadcrumbs, Link } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ShareIcon from '@mui/icons-material/Share';
+import HomeIcon from '@mui/icons-material/Home';
+import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 
 const PhotoPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -146,6 +148,33 @@ const PhotoPage: React.FC = () => {
         pt: { xs: 2, md: 4 },
         pb: { xs: 2, md: 4 },
       }}>
+        {/* Breadcrumb Navigation */}
+        <Breadcrumbs 
+          aria-label="breadcrumb" 
+          sx={{ mb: { xs: 2, md: 3 }, alignSelf: 'flex-start', ml: { xs: 2, md: 0 } }}
+        >
+          <Link 
+            underline="hover" 
+            color="inherit" 
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              navigate('/gallery');
+            }}
+            sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+          >
+            <HomeIcon fontSize="inherit" />
+            Home
+          </Link>
+          <Typography 
+            color="text.primary"
+            sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+          >
+            <PhotoCameraIcon fontSize="inherit" />
+            Foto aufnehmen
+          </Typography>
+        </Breadcrumbs>
+
         {branding.type === 'logo' && branding.logo && (
           <img src={branding.logo} alt="Branding Logo" style={{ maxHeight: 120, marginBottom: 16 }} />
         )}

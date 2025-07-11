@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { 
   Box, 
   Typography, 
@@ -10,92 +10,90 @@ import {
   AppBar, 
   Toolbar, 
   IconButton, 
-  Button, 
-  Breadcrumbs, 
+  Button,
+  Breadcrumbs,
   Link,
   Checkbox,
   Snackbar,
   Alert
 } from '@mui/material';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
-import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import FolderIcon from '@mui/icons-material/Folder';
 import HomeIcon from '@mui/icons-material/Home';
-import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import PhotoSelectionBar from '../components/PhotoSelectionBar';
 
-const GalleryPage: React.FC = () => {
-  const [photos, setPhotos] = useState<string[]>([]);
+interface Photo {
+  filename: string;
+  path: string;
+  folder: string;
+  size: number;
+  created: string;
+}
+
+const FolderGalleryPage: React.FC = () => {
+  const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [folderDisplayName, setFolderDisplayName] = useState('');
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, severity: 'success' | 'error' }>({ 
     open: false, message: '', severity: 'success' 
   });
   const navigate = useNavigate();
-
-  console.log('GalleryPage rendered, photos:', photos, 'loading:', loading);
+  const { folderName } = useParams<{ folderName: string }>();
 
   useEffect(() => {
-    const loadPhotos = async () => {
+    if (!folderName) {
+      navigate('/gallery');
+      return;
+    }
+
+    const loadFolderPhotos = async () => {
       try {
-        // Versuche zuerst das Backend
-        const response = await fetch('http://localhost:3001/api/photos');
+        const response = await fetch(`http://localhost:3001/api/folders/${encodeURIComponent(folderName)}/photos`);
         if (response.ok) {
           const data = await response.json();
-          console.log('Photos response:', data);
-          // Wenn data.photos ein Array von Objekten ist, extrahiere die Dateinamen
-          const photoArray = Array.isArray(data.photos) 
-            ? data.photos.map((photo: any) => typeof photo === 'string' ? photo : photo.filename)
-            : [];
-          setPhotos(photoArray.reverse());
+          console.log('Folder photos response:', data);
+          setPhotos(data.photos || []);
+          
+          // Datum aus Ordnername extrahieren (YYYYMMDD_Photobooth)
+          const dateMatch = folderName.match(/^(\d{4})(\d{2})(\d{2})_Photobooth$/);
+          const displayName = dateMatch ? `${dateMatch[3]}.${dateMatch[2]}.${dateMatch[1]}` : folderName;
+          setFolderDisplayName(displayName);
         } else {
-          throw new Error('Backend not available');
+          console.error('Failed to load folder photos');
+          setPhotos([]);
         }
       } catch (error) {
-        console.error('Backend not available, using fallback photos:', error);
-        // Fallback: Verwende die echten Fotos die in public/photos verfügbar sind
-        const realPhotos = [
-          '20190804_Hochzeit_Robin_Vanessa-042.jpg',
-          '20190804_Hochzeit_Robin_Vanessa-044.jpg',
-          '20191124_Jarno_Lena_081.jpg',
-          '20200531_Adi_Epp_017.jpg',
-          '20210207_Lifeline_012.jpg',
-          '20240715_Radomski_Babybauch_001.jpg',
-          'demo-portrait.jpg',
-          'demo-landscape.jpg', 
-          'demo-group.jpg',
-          'demo-selfie.jpg',
-          'demo-party.jpg',
-          'photo-2025-07-07T21-52-44-051Z.jpg'
-        ];
-        setPhotos(realPhotos);
+        console.error('Error loading folder photos:', error);
+        setPhotos([]);
       } finally {
         setLoading(false);
       }
     };
 
-    loadPhotos();
-  }, []);
+    loadFolderPhotos();
+  }, [folderName, navigate]);
 
   // Multi-Select Handler Functions
-  const handlePhotoSelect = (photoName: string, event: React.MouseEvent) => {
+  const handlePhotoSelect = (photoFilename: string, event: React.MouseEvent) => {
     event.stopPropagation();
     setSelectedPhotos(prev => {
       const newSelection = new Set(prev);
-      if (newSelection.has(photoName)) {
-        newSelection.delete(photoName);
+      if (newSelection.has(photoFilename)) {
+        newSelection.delete(photoFilename);
       } else {
-        newSelection.add(photoName);
+        newSelection.add(photoFilename);
       }
       return newSelection;
     });
   };
 
   const handleSelectAll = () => {
-    setSelectedPhotos(new Set(photos));
+    setSelectedPhotos(new Set(photos.map(p => p.filename)));
   };
 
   const handleDeselectAll = () => {
@@ -104,32 +102,31 @@ const GalleryPage: React.FC = () => {
 
   const handleMoveToTrash = async () => {
     try {
-      const photoNames = Array.from(selectedPhotos);
-      for (const photoName of photoNames) {
-        const response = await fetch(`http://localhost:3001/api/photos/${encodeURIComponent(photoName)}/trash`, {
+      const photoFilenames = Array.from(selectedPhotos);
+      for (const filename of photoFilenames) {
+        const response = await fetch(`http://localhost:3001/api/photos/${encodeURIComponent(filename)}/trash`, {
           method: 'POST'
         });
         if (!response.ok) {
-          throw new Error(`Failed to move photo ${photoName}`);
+          throw new Error(`Failed to move photo ${filename}`);
         }
       }
       
       setSnackbar({
         open: true,
-        message: `${photoNames.length} Fotos in den Papierkorb verschoben`,
+        message: `${photoFilenames.length} Fotos in den Papierkorb verschoben`,
         severity: 'success'
       });
       
       // Refresh photos
       setSelectedPhotos(new Set());
       setSelectionMode(false);
-      const response = await fetch('http://localhost:3001/api/photos');
-      if (response.ok) {
-        const data = await response.json();
-        const photoArray = Array.isArray(data.photos) 
-          ? data.photos.map((photo: any) => typeof photo === 'string' ? photo : photo.filename)
-          : [];
-        setPhotos(photoArray.reverse());
+      if (folderName) {
+        const response = await fetch(`http://localhost:3001/api/folders/${encodeURIComponent(folderName)}/photos`);
+        if (response.ok) {
+          const data = await response.json();
+          setPhotos(data.photos || []);
+        }
       }
     } catch (error) {
       console.error('Error moving photos to trash:', error);
@@ -153,6 +150,12 @@ const GalleryPage: React.FC = () => {
   const handleCloseSelection = () => {
     setSelectionMode(false);
     setSelectedPhotos(new Set());
+  };
+
+  const handlePhotoClick = (photo: Photo) => {
+    navigate(`/view/${encodeURIComponent(`${photo.folder}/${photo.filename}`)}`, {
+      state: { from: `/gallery/folder/${encodeURIComponent(folderName || '')}` }
+    });
   };
 
   return (
@@ -185,7 +188,7 @@ const GalleryPage: React.FC = () => {
               whiteSpace: 'nowrap'
             }}
           >
-            📷 Alle Fotos
+            📅 {folderDisplayName}
           </Typography>
           
           {/* Multi-Select Toggle */}
@@ -200,19 +203,6 @@ const GalleryPage: React.FC = () => {
             }}
           >
             {selectionMode ? <CheckBoxIcon /> : <CheckBoxOutlineBlankIcon />}
-          </IconButton>
-          
-          <IconButton 
-            color="inherit" 
-            onClick={() => navigate('/admin')}
-            sx={{
-              p: { xs: 1, sm: 1.5 },
-              '& .MuiSvgIcon-root': {
-                fontSize: { xs: '1.2rem', sm: '1.5rem' }
-              }
-            }}
-          >
-            <AdminPanelSettingsIcon />
           </IconButton>
         </Toolbar>
       </AppBar>
@@ -247,8 +237,8 @@ const GalleryPage: React.FC = () => {
             color="text.primary"
             sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
           >
-            <PhotoLibraryIcon fontSize="inherit" />
-            Alle Fotos
+            <FolderIcon fontSize="inherit" />
+            {folderDisplayName}
           </Typography>
         </Breadcrumbs>
 
@@ -258,101 +248,107 @@ const GalleryPage: React.FC = () => {
           </Box>
         ) : (
           <>
-            {/* Debug Info */}
-            <Typography variant="body2" sx={{ mb: 2, opacity: 0.7 }}>
-              Debug: {photos.length} Fotos geladen
-            </Typography>
-            
             {photos.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 8 }}>
                 <Typography variant="h4" sx={{ mb: 2 }}>
-                  Keine Fotos verfügbar
+                  Keine Fotos in diesem Ordner
                 </Typography>
                 <Typography variant="body1" sx={{ mb: 4, opacity: 0.7 }}>
-                  Erstelle dein erstes Foto!
+                  Dieser Tagesordner ist noch leer.
                 </Typography>
+                <Button 
+                  variant="outlined" 
+                  onClick={() => navigate('/gallery')}
+                  sx={{ mr: 2 }}
+                >
+                  Zurück zur Übersicht
+                </Button>
               </Box>
             ) : (
-              <Box 
-                sx={{ 
-                  display: 'grid',
-                  gridTemplateColumns: {
-                    xs: 'repeat(2, 1fr)',
-                    sm: 'repeat(3, 1fr)',
-                    md: 'repeat(4, 1fr)',
-                    lg: 'repeat(5, 1fr)',
-                    xl: 'repeat(6, 1fr)'
-                  },
-                  gap: { xs: 1, sm: 2, md: 3 },
-                  width: '100%'
-                }}
-              >
-                {photos.map((photo) => (
-                  <Card 
-                    key={photo}
-                    sx={{ 
-                      borderRadius: { xs: 2, md: 3 },
-                      overflow: 'hidden',
-                      aspectRatio: '3/2',
-                      position: 'relative',
-                      border: selectionMode && selectedPhotos.has(photo) ? '3px solid' : '1px solid',
-                      borderColor: selectionMode && selectedPhotos.has(photo) ? 'primary.main' : 'divider',
-                      '&:hover': {
-                        transform: 'scale(1.02)',
-                        transition: 'transform 0.2s ease-in-out',
-                        boxShadow: 4
-                      }
-                    }}
-                  >
-                    {/* Selection Checkbox */}
-                    {selectionMode && (
-                      <Checkbox
-                        checked={selectedPhotos.has(photo)}
-                        onChange={(e) => handlePhotoSelect(photo, e as any)}
-                        sx={{
-                          position: 'absolute',
-                          top: 4,
-                          right: 4,
-                          zIndex: 10,
-                          backgroundColor: 'rgba(255,255,255,0.9)',
-                          borderRadius: 1,
-                          '&:hover': {
-                            backgroundColor: 'rgba(255,255,255,1)'
-                          }
-                        }}
-                      />
-                    )}
-                    
-                    <CardActionArea 
-                      onClick={selectionMode ? 
-                        (e) => handlePhotoSelect(photo, e) : 
-                        () => navigate(`/view/${encodeURIComponent(photo)}`, { 
-                          state: { from: '/gallery/all' }
-                        })
-                      }
-                      sx={{ height: '100%' }}
+              <>
+                <Typography variant="h5" sx={{ mb: 3, fontWeight: 600 }}>
+                  {photos.length} {photos.length === 1 ? 'Foto' : 'Fotos'} vom {folderDisplayName}
+                </Typography>
+                
+                <Box 
+                  sx={{ 
+                    display: 'grid',
+                    gridTemplateColumns: {
+                      xs: 'repeat(2, 1fr)',
+                      sm: 'repeat(3, 1fr)',
+                      md: 'repeat(4, 1fr)',
+                      lg: 'repeat(5, 1fr)',
+                      xl: 'repeat(6, 1fr)'
+                    },
+                    gap: { xs: 1, sm: 2, md: 3 },
+                    width: '100%'
+                  }}
+                >
+                  {photos.map((photo) => (
+                    <Card 
+                      key={photo.filename}
+                      sx={{ 
+                        borderRadius: { xs: 2, md: 3 },
+                        overflow: 'hidden',
+                        aspectRatio: '3/2',
+                        position: 'relative',
+                        border: selectionMode && selectedPhotos.has(photo.filename) ? '3px solid' : '1px solid',
+                        borderColor: selectionMode && selectedPhotos.has(photo.filename) ? 'primary.main' : 'divider',
+                        '&:hover': {
+                          transform: 'scale(1.02)',
+                          transition: 'transform 0.2s ease-in-out',
+                          boxShadow: 4
+                        }
+                      }}
                     >
-                      <CardMedia
-                        component="img"
-                        height="100%"
-                        image={`http://localhost:3001/api/photos/${encodeURIComponent(photo.split('/').pop() || photo)}/thumbnail?size=300`}
-                        alt={photo}
-                        sx={{
-                          objectFit: 'cover', // Beschneidet das Bild um den Rahmen zu füllen
-                          aspectRatio: '3/2',
-                          width: '100%',
-                          height: '100%'
-                        }}
-                        onError={(e) => {
-                          // Fallback zu lokalen Fotos wenn Backend nicht erreichbar
-                          const target = e.target as HTMLImageElement;
-                          target.src = `/photos/${photo}`;
-                        }}
-                      />
-                    </CardActionArea>
-                  </Card>
-                ))}
-              </Box>
+                      {/* Selection Checkbox */}
+                      {selectionMode && (
+                        <Checkbox
+                          checked={selectedPhotos.has(photo.filename)}
+                          onChange={(e) => handlePhotoSelect(photo.filename, e as any)}
+                          sx={{
+                            position: 'absolute',
+                            top: 4,
+                            right: 4,
+                            zIndex: 10,
+                            backgroundColor: 'rgba(255,255,255,0.9)',
+                            borderRadius: 1,
+                            '&:hover': {
+                              backgroundColor: 'rgba(255,255,255,1)'
+                            }
+                          }}
+                        />
+                      )}
+                      
+                      <CardActionArea 
+                        onClick={selectionMode ? 
+                          (e) => handlePhotoSelect(photo.filename, e) : 
+                          () => handlePhotoClick(photo)
+                        }
+                        sx={{ height: '100%' }}
+                      >
+                        <CardMedia
+                          component="img"
+                          height="100%"
+                          image={`http://localhost:3001${photo.path}`}
+                          alt={photo.filename}
+                          sx={{
+                            objectFit: 'cover',
+                            aspectRatio: '3/2',
+                            width: '100%',
+                            height: '100%'
+                          }}
+                          onError={(e) => {
+                            // Fallback zu lokalen Fotos wenn Backend nicht erreichbar
+                            const target = e.target as HTMLImageElement;
+                            target.src = `/photos/${photo.filename}`;
+                          }}
+                        />
+                      </CardActionArea>
+                    </Card>
+                  ))}
+                </Box>
+              </>
             )}
             
             {/* Foto aufnehmen Button - nur wenn nicht im Auswahlmodus */}
@@ -427,4 +423,4 @@ const GalleryPage: React.FC = () => {
   );
 };
 
-export default GalleryPage;
+export default FolderGalleryPage;
