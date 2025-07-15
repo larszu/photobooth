@@ -1,0 +1,55 @@
+{
+  "name": "photobooth-backend-raspberry",
+  "version": "1.0.0",
+  "description": "Photobooth Backend für Raspberry Pi mit echter Hardware-Integration",
+  "type": "module",
+  "main": "server-raspberry.js",
+  "scripts": {
+    "start": "node server-raspberry.js",
+    "dev": "nodemon server-raspberry.js",
+    "test": "jest",
+    "install-deps": "npm install && sudo apt-get update && sudo apt-get install -y gphoto2 libgphoto2-dev pigpio",
+    "setup-gpio": "sudo systemctl enable pigpiod && sudo systemctl start pigpiod"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "multer": "^1.4.5-lts.1",
+    "express-session": "^1.17.3",
+    "cookie-parser": "^1.4.6",
+    "qrcode": "^1.5.3",
+    "sharp": "^0.32.6",
+    "onoff": "^6.0.3",
+    "pigpio-client": "^1.4.0",
+    "node-gphoto2": "^0.0.8"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "jest": "^29.7.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/larszu/photobooth.git"
+  },
+  "keywords": [
+    "photobooth",
+    "raspberry-pi",
+    "camera",
+    "gpio",
+    "gphoto2",
+    "express",
+    "nodejs"
+  ],
+  "author": "larszu",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "arm",
+    "arm64"
+  ]
+}
