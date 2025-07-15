@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
 import { AuthProvider } from './context/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute';
+import AlwaysAuthenticateRoute from './components/AlwaysAuthenticateRoute';
 import GalleryPage from './pages/GalleryPage';
 import FoldersOverviewPage from './pages/FoldersOverviewPage';
 import FolderGalleryPage from './pages/FolderGalleryPage';
@@ -36,14 +36,14 @@ const App: React.FC = () => (
             <Route path="/photo/new" element={<PhotoPage />} />
             <Route path="/view/:id" element={<PhotoViewPage />} />
             <Route path="/admin" element={
-              <ProtectedRoute>
+              <AlwaysAuthenticateRoute>
                 <AdminPage />
-              </ProtectedRoute>
+              </AlwaysAuthenticateRoute>
             } />
             <Route path="/trash" element={
-              <ProtectedRoute>
+              <AlwaysAuthenticateRoute>
                 <TrashPage />
-              </ProtectedRoute>
+              </AlwaysAuthenticateRoute>
             } />
           </Routes>
         </Router>

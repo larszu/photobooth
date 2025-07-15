@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext } from 'react';
 import { Box, Typography, AppBar, Toolbar, IconButton, Button, TextField, Snackbar, Alert, ToggleButtonGroup, ToggleButton, Slider, Dialog, DialogTitle, DialogContent, DialogActions, Breadcrumbs, Link } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -19,7 +19,6 @@ import { useVirtualKeyboard } from '../hooks/useVirtualKeyboard';
 const AdminPage: React.FC = () => {
   const [ssid, setSsid] = useState('');
   const [password, setPassword] = useState('');
-  const [wifiEnabled, setWifiEnabled] = useState(false);
   const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [brandingType, setBrandingType] = useState<'logo' | 'text'>('text');
@@ -27,6 +26,7 @@ const AdminPage: React.FC = () => {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [currentLogo, setCurrentLogo] = useState<string | null>(null);
+  const [lastBrandingTimestamp, setLastBrandingTimestamp] = useState<number>(0);
   
   // Farbverwaltung
   const [primaryHue, setPrimaryHue] = useState(212); // Hue für #1976d2
@@ -42,20 +42,6 @@ const AdminPage: React.FC = () => {
   const passwordKeyboard = useVirtualKeyboard(password, setPassword, { autoShow: true });
   const brandingTextKeyboard = useVirtualKeyboard(brandingText, setBrandingText, { autoShow: true });
   const [activeKeyboard, setActiveKeyboard] = useState<'none' | 'ssid' | 'password' | 'branding'>('none');
-
-  // Auto-Logout beim Betreten der Admin-Seite aktivieren
-  useEffect(() => {
-    if (authContext?.enableAutoLogout) {
-      authContext.enableAutoLogout();
-    }
-
-    // Cleanup: Auto-Logout beim Verlassen der Komponente
-    return () => {
-      if (authContext?.disableAutoLogout) {
-        authContext.disableAutoLogout();
-      }
-    };
-  }, [authContext]);
 
   // Hilfsfunktionen für Farbkonvertierung
   const hslToHex = (h: number, s: number = 100, l: number = 50): string => {
@@ -139,21 +125,49 @@ const AdminPage: React.FC = () => {
   };
 
   // Lade aktuelle Branding-Daten beim Komponenten-Start
-  React.useEffect(() => {
-    fetch('/api/branding')
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setBrandingType(data.type || 'text');
-          setBrandingText(data.text || '');
-          if (data.logo) {
-            setCurrentLogo(data.logo);
-          }
-          console.log('Current branding data:', data);
+  const loadBrandingData = async () => {
+    try {
+      const res = await fetch('/api/branding');
+      const data = await res.json();
+      if (data.success) {
+        setBrandingType(data.type || 'text');
+        setBrandingText(data.text || '');
+        if (data.logo) {
+          setCurrentLogo(data.logo);
+        } else {
+          setCurrentLogo(null);
         }
-      })
-      .catch(err => console.error('Error loading branding:', err));
+        console.log('Current branding data:', data);
+      }
+    } catch (err) {
+      console.error('Error loading branding:', err);
+    }
+  };
+
+  // Prüfe auf Branding-Updates
+  const checkBrandingUpdates = async () => {
+    try {
+      const res = await fetch('/api/branding/timestamp');
+      const data = await res.json();
+      if (data.success && data.timestamp > lastBrandingTimestamp) {
+        console.log('🔄 Branding update detected, reloading...');
+        setLastBrandingTimestamp(data.timestamp);
+        await loadBrandingData();
+      }
+    } catch (err) {
+      console.error('Error checking branding updates:', err);
+    }
+  };
+
+  React.useEffect(() => {
+    loadBrandingData();
   }, []);
+
+  // Polling für Live-Updates alle 2 Sekunden
+  React.useEffect(() => {
+    const interval = setInterval(checkBrandingUpdates, 2000);
+    return () => clearInterval(interval);
+  }, [lastBrandingTimestamp]);
 
   // Lade aktuelle Systemfarben beim Komponenten-Start
   React.useEffect(() => {
@@ -178,7 +192,7 @@ const AdminPage: React.FC = () => {
       .then(data => {
         if (data.success) {
           setSsid(data.config.ssid || '');
-          setWifiEnabled(data.config.enabled || false);
+          // Smart Share ist immer aktiviert
           console.log('Current WiFi config:', data.config);
         }
       })
@@ -193,13 +207,13 @@ const AdminPage: React.FC = () => {
         body: JSON.stringify({ 
           ssid, 
           password, 
-          enabled: wifiEnabled 
+          enabled: true // Smart Share ist immer aktiviert
         })
       });
       const data = await res.json();
       setSnackbar({ 
         open: true, 
-        message: data.message || 'Smart Share Konfiguration gespeichert', 
+        message: data.message || 'WLAN-Konfiguration gespeichert', 
         severity: data.success ? 'success' : 'error' 
       });
     } catch (error) {
@@ -266,11 +280,11 @@ const AdminPage: React.FC = () => {
       
       if (data.success) {
         setSnackbar({ open: true, message: data.message || 'Logo erfolgreich gespeichert', severity: 'success' });
-        // Aktualisiere das aktuelle Logo und setze Upload-State zurück
-        setCurrentLogo(data.logo || logoPreview);
+        // Setze Upload-State zurück
         setLogoFile(null);
         setLogoPreview(null);
-        setBrandingType('logo');
+        // Lade das aktuelle Branding neu
+        await loadBrandingData();
       } else {
         setSnackbar({ open: true, message: data.error || 'Fehler beim Speichern des Logos', severity: 'error' });
       }
@@ -287,8 +301,8 @@ const AdminPage: React.FC = () => {
       
       if (data.success) {
         setSnackbar({ open: true, message: data.message || 'Logo erfolgreich gelöscht', severity: 'success' });
-        setCurrentLogo(null);
-        setBrandingType('text');
+        // Lade das aktuelle Branding neu
+        await loadBrandingData();
         // Setze Standard-Text falls noch keiner vorhanden ist
         if (!brandingText) {
           setBrandingText('Willkommen bei der Fotobox!');
@@ -370,6 +384,20 @@ const AdminPage: React.FC = () => {
           </Typography>
           <IconButton 
             color="inherit" 
+            onClick={() => navigate('/trash', { state: { fromInternal: true } })}
+            sx={{
+              p: { xs: 1, sm: 1.5 },
+              mr: { xs: 0.5, sm: 1 },
+              '& .MuiSvgIcon-root': {
+                fontSize: { xs: '1.2rem', sm: '1.5rem' }
+              }
+            }}
+            title="Papierkorb"
+          >
+            <RestoreFromTrashIcon />
+          </IconButton>
+          <IconButton 
+            color="inherit" 
             onClick={handleLogout}
             sx={{
               p: { xs: 1, sm: 1.5 },
@@ -431,24 +459,12 @@ const AdminPage: React.FC = () => {
           Konfiguriere WLAN-Zugangsdaten für automatische Verbindung über QR-Code
         </Typography>
         
-        <Box sx={{ mb: 2 }}>
-          <Button
-            variant={wifiEnabled ? 'contained' : 'outlined'}
-            color={wifiEnabled ? 'success' : 'primary'}
-            onClick={() => setWifiEnabled(!wifiEnabled)}
-            sx={{ mb: 2 }}
-          >
-            {wifiEnabled ? '✅ Smart Share aktiviert' : '⚪ Smart Share aktivieren'}
-          </Button>
-        </Box>
-
         <TextField 
           label="WLAN-Name (SSID)" 
           value={ssid} 
           onChange={e => setSsid(e.target.value)} 
           fullWidth 
           margin="normal"
-          disabled={!wifiEnabled}
           placeholder="z.B. Photobooth-WLAN"
           InputProps={{ startAdornment: <WifiIcon sx={{ mr: 1 }} /> }}
           sx={{
@@ -468,7 +484,6 @@ const AdminPage: React.FC = () => {
           fullWidth 
           margin="normal" 
           type="password"
-          disabled={!wifiEnabled}
           placeholder="Mindestens 8 Zeichen"
           sx={{
             '& .MuiInputBase-root': {
@@ -481,31 +496,29 @@ const AdminPage: React.FC = () => {
           }}
         />
         
-        {wifiEnabled && (
-          <Box sx={{ 
-            mt: 2, 
-            p: 2, 
-            backgroundColor: 'rgba(76, 175, 80, 0.1)', 
-            borderRadius: 2,
-            border: '1px solid rgba(76, 175, 80, 0.3)'
-          }}>
-            <Typography variant="body2" color="success.main" fontWeight="bold">
-              📱 Smart Share Funktionen:
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              • QR-Code scannen verbindet automatisch mit WLAN<br/>
-              • Foto öffnet sich automatisch im Browser<br/>
-              • Direkter Download und Teilen möglich<br/>
-              • Funktioniert mit iOS und Android
-            </Typography>
-          </Box>
-        )}
+        <Box sx={{ 
+          mt: 2, 
+          p: 2, 
+          backgroundColor: 'rgba(76, 175, 80, 0.1)', 
+          borderRadius: 2,
+          border: '1px solid rgba(76, 175, 80, 0.3)'
+        }}>
+          <Typography variant="body2" color="success.main" fontWeight="bold">
+            📱 Smart Share Funktionen:
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            • QR-Code scannen verbindet automatisch mit WLAN<br/>
+            • Foto öffnet sich automatisch im Browser<br/>
+            • Direkter Download und Teilen möglich<br/>
+            • Funktioniert mit iOS und Android
+          </Typography>
+        </Box>
 
         <Button 
           variant="contained" 
           color="primary" 
           onClick={handleWifiSave} 
-          disabled={wifiEnabled && (!ssid || !password)}
+          disabled={!ssid}
           sx={{ 
             mt: 2,
             fontSize: { xs: '0.9rem', md: '1rem' },
@@ -513,7 +526,7 @@ const AdminPage: React.FC = () => {
             px: { xs: 2, md: 3 }
           }}
         >
-          Speichern
+          WLAN speichern
         </Button>
         
         {/* Fotos löschen Section */}
@@ -543,7 +556,7 @@ const AdminPage: React.FC = () => {
               variant="outlined" 
               color="primary" 
               startIcon={<RestoreFromTrashIcon />} 
-              onClick={() => navigate('/trash')}
+              onClick={() => navigate('/trash', { state: { fromInternal: true } })}
               sx={{
                 fontSize: { xs: '0.9rem', md: '1rem' },
                 py: { xs: 1, md: 1.5 },
@@ -720,7 +733,7 @@ const AdminPage: React.FC = () => {
                   QR-Code zum Logo-Upload:
                 </Typography>
                 <img 
-                  src="/api/admin/branding/logo-qr" 
+                  src="/api/logo-upload-qr" 
                   alt="Logo Upload QR" 
                   style={{ 
                     width: window.innerWidth < 600 ? 100 : 120, 
@@ -767,6 +780,8 @@ const AdminPage: React.FC = () => {
         </Box>
 
         {/* Farbverwaltung Section */}
+        {/* Systemfarben - Temporär ausgeblendet */}
+        {false && (
         <Box sx={{ mt: { xs: 3, md: 4 } }}>
           <Typography 
             variant="h6" 
@@ -921,6 +936,7 @@ const AdminPage: React.FC = () => {
             Farben speichern
           </Button>
         </Box>
+        )}
       </Box>
       
       <Snackbar 

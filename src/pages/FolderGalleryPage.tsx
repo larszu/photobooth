@@ -22,6 +22,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import FolderIcon from '@mui/icons-material/Folder';
 import HomeIcon from '@mui/icons-material/Home';
 import PhotoSelectionBar from '../components/PhotoSelectionBar';
+import BulkSmartShareDialog from '../components/BulkSmartShareDialog';
 
 interface Photo {
   filename: string;
@@ -40,6 +41,7 @@ const FolderGalleryPage: React.FC = () => {
   const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, severity: 'success' | 'error' }>({ 
     open: false, message: '', severity: 'success' 
   });
+  const [bulkShareDialogOpen, setBulkShareDialogOpen] = useState(false);
   const navigate = useNavigate();
   const { folderName } = useParams<{ folderName: string }>();
 
@@ -137,12 +139,18 @@ const FolderGalleryPage: React.FC = () => {
   };
 
   const handleShare = () => {
-    // TODO: Implement bulk sharing
-    setSnackbar({
-      open: true,
-      message: 'Bulk-Teilen wird in einer zukünftigen Version verfügbar sein',
-      severity: 'success'
-    });
+    if (selectedPhotos.size === 0) {
+      setSnackbar({
+        open: true,
+        message: 'Keine Fotos ausgewählt zum Teilen',
+        severity: 'error'
+      });
+      return;
+    }
+
+    // Konvertiere Dateinamen zu vollständigen Photo-IDs mit Ordner
+    const photoIds = Array.from(selectedPhotos).map(filename => `${folderName}/${filename}`);
+    setBulkShareDialogOpen(true);
   };
 
   const handleCloseSelection = () => {
@@ -426,6 +434,13 @@ const FolderGalleryPage: React.FC = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Bulk Smart Share Dialog */}
+      <BulkSmartShareDialog
+        open={bulkShareDialogOpen}
+        onClose={() => setBulkShareDialogOpen(false)}
+        photoIds={Array.from(selectedPhotos).map(filename => `${folderName}/${filename}`)}
+      />
     </Box>
   );
 };

@@ -12,6 +12,7 @@ import sharp from 'sharp';
 
 // Import Auth-Modul
 import { login, verifyToken, requireAuth, getAuthStatus } from './auth.js';
+import brandingRoutes from './brandingRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -40,6 +41,7 @@ app.use(session({
 const PHOTOS_DIR = path.join(__dirname, '../photos');
 const BRANDING_DIR = path.join(__dirname, '../branding');
 const TRASH_DIR = path.join(PHOTOS_DIR, 'papierkorb');
+const BRANDING_FILE = path.join(BRANDING_DIR, 'branding.json');
 
 // Middleware
 app.use(cors());
@@ -549,6 +551,18 @@ app.delete('/api/photos', (req, res) => {
       fs.mkdirSync(TRASH_DIR, { recursive: true });
     }
     
+    // Metadaten-Datei laden oder erstellen
+    const metadataPath = path.join(TRASH_DIR, '.metadata.json');
+    let metadata = {};
+    if (fs.existsSync(metadataPath)) {
+      try {
+        metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+      } catch (error) {
+        console.warn('⚠️ Could not read metadata file, creating new one');
+        metadata = {};
+      }
+    }
+    
     let movedCount = 0;
     let errorCount = 0;
     
@@ -571,15 +585,45 @@ app.delete('/api/photos', (req, res) => {
           finalTrashPath = path.join(TRASH_DIR, `${basename}_${timestamp}${ext}`);
         }
         
+        // Ursprünglichen Ordner aus dem Pfad ermitteln
+        const originalFolder = path.basename(path.dirname(photo.fullPath));
+        
         fs.renameSync(photo.fullPath, finalTrashPath);
+        
+        // Metadaten für dieses Foto hinzufügen
+        const trashFilename = path.basename(finalTrashPath);
+        metadata[trashFilename] = {
+          originalName: photo.filename,
+          originalFolder: originalFolder,
+          deletedAt: new Date().toISOString()
+        };
+        
+        // Falls der Dateiname geändert wurde, erstelle auch einen Eintrag für den ursprünglichen Namen
+        if (trashFilename !== photo.filename) {
+          metadata[photo.filename] = {
+            originalName: photo.filename,
+            originalFolder: originalFolder,
+            deletedAt: new Date().toISOString(),
+            actualTrashName: trashFilename
+          };
+        }
+        
         movedCount++;
-        console.log(`✅ Moved: ${photo.filename} -> trash`);
+        console.log(`✅ Moved: ${photo.filename} -> trash (from ${originalFolder})`);
         
       } catch (moveError) {
         console.error(`❌ Error moving photo ${photo.filename}:`, moveError);
         errorCount++;
       }
     });
+    
+    // Metadaten speichern
+    try {
+      fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
+      console.log(`📋 Metadata saved for ${Object.keys(metadata).length} entries`);
+    } catch (metadataError) {
+      console.error('❌ Error saving metadata:', metadataError);
+    }
     
     console.log(`🗑️ Operation complete: ${movedCount} moved, ${errorCount} errors`);
     
@@ -636,33 +680,56 @@ app.delete('/api/trash/:filename', (req, res) => {
 app.post('/api/trash/:filename/restore', (req, res) => {
   try {
     const filename = decodeURIComponent(req.params.filename);
-    const trashPath = path.join(TRASH_DIR, filename);
     
     console.log(`🔄 POST /api/trash/${filename}/restore called`);
     
-    if (!fs.existsSync(trashPath)) {
-      return res.status(404).json({
-        success: false,
-        message: 'Foto nicht im Papierkorb gefunden'
-      });
-    }
-    
-    // Metadaten laden um ursprünglichen Ordner zu finden
+    // Metadaten laden um ursprünglichen Ordner zu finden und tatsächlichen Dateinamen zu ermitteln
     const metadataPath = path.join(TRASH_DIR, '.metadata.json');
     let originalFolder = null;
     let originalName = filename;
+    let actualTrashFilename = filename; // Der tatsächliche Dateiname im Papierkorb
     
     if (fs.existsSync(metadataPath)) {
       try {
         const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+        
+        // Zuerst mit dem gegebenen Dateinamen suchen
         if (metadata[filename]) {
           originalFolder = metadata[filename].originalFolder;
           originalName = metadata[filename].originalName;
-          console.log(`📋 Found metadata: ${filename} -> original folder: ${originalFolder}`);
+          // Prüfe ob es einen Verweis auf den tatsächlichen Namen im Papierkorb gibt
+          actualTrashFilename = metadata[filename].actualTrashName || filename;
+          console.log(`📋 Found metadata for ${filename} -> original folder: ${originalFolder}, actual trash name: ${actualTrashFilename}`);
+        } else {
+          // Falls nicht gefunden, suche in allen Metadaten nach einem Eintrag mit diesem originalName
+          const metadataEntry = Object.entries(metadata).find(([key, data]) => 
+            data.originalName === filename
+          );
+          
+          if (metadataEntry) {
+            const [trashName, data] = metadataEntry;
+            originalFolder = data.originalFolder;
+            originalName = data.originalName;
+            actualTrashFilename = trashName;
+            console.log(`📋 Found metadata by originalName: ${filename} -> trash name: ${trashName}, original folder: ${originalFolder}`);
+          } else {
+            console.log(`⚠️ No metadata found for ${filename}`);
+          }
         }
       } catch (error) {
-        console.warn('⚠️ Could not read metadata file');
+        console.warn('⚠️ Could not read metadata file:', error);
       }
+    }
+    
+    // Verwende den tatsächlichen Dateinamen im Papierkorb
+    const trashPath = path.join(TRASH_DIR, actualTrashFilename);
+    
+    // Prüfe ob die Datei im Papierkorb existiert
+    if (!fs.existsSync(trashPath)) {
+      return res.status(404).json({
+        success: false,
+        message: `Foto nicht im Papierkorb gefunden: ${actualTrashFilename}`
+      });
     }
     
     // Bestimme den Zielordner
@@ -872,6 +939,9 @@ app.post('/api/auth/change-password', requireAuth, async (req, res) => {
 // Geschützte Admin-Routen - Authentifizierung erforderlich
 app.use('/api/admin', requireAuth);
 
+// Branding-Routen (geschützt)
+app.use('/api/admin/branding', brandingRoutes);
+
 // Server starten
 app.listen(PORT, () => {
   console.log();
@@ -1000,12 +1070,24 @@ app.post('/api/photos/:filename/trash', (req, res) => {
       }
     }
     
-    // Metadaten für dieses Foto hinzufügen
-    metadata[path.basename(finalTargetPath)] = {
+    // Metadaten für dieses Foto hinzufügen - verwende den tatsächlichen Dateinamen im Papierkorb als Key
+    const trashFilename = path.basename(finalTargetPath);
+    metadata[trashFilename] = {
       originalName: filename,
       originalFolder: originalFolder,
       deletedAt: new Date().toISOString()
     };
+    
+    // Falls der Dateiname geändert wurde, erstelle auch einen Eintrag für den ursprünglichen Namen
+    // Das hilft bei der Suche während der Wiederherstellung
+    if (trashFilename !== filename) {
+      metadata[filename] = {
+        originalName: filename,
+        originalFolder: originalFolder,
+        deletedAt: new Date().toISOString(),
+        actualTrashName: trashFilename // Verweis auf den tatsächlichen Namen im Papierkorb
+      };
+    }
     
     // Metadaten speichern
     fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
@@ -1139,6 +1221,28 @@ app.post('/api/folders/:folderName/trash', (req, res) => {
       success: false,
       message: 'Fehler beim Verschieben des Ordner-Inhalts: ' + error.message
     });
+  }
+});
+
+// Bulk Gallery Page - Mobile-optimierte Seite für mehrere Fotos
+app.get('/bulk-gallery', (req, res) => {
+  try {
+    const bulkGalleryPath = path.join(__dirname, 'bulk-gallery.html');
+    res.sendFile(bulkGalleryPath);
+  } catch (error) {
+    console.error('❌ Error serving bulk gallery page:', error);
+    res.status(500).send('Fehler beim Laden der Bulk-Galerie-Seite');
+  }
+});
+
+// Mobile Logo Upload Page - Mobile-optimierte Seite für Logo-Upload
+app.get('/mobile-logo-upload', (req, res) => {
+  try {
+    const mobileLogoUploadPath = path.join(__dirname, 'mobile-logo-upload.html');
+    res.sendFile(mobileLogoUploadPath);
+  } catch (error) {
+    console.error('❌ Error serving mobile logo upload page:', error);
+    res.status(500).send('Fehler beim Laden der mobilen Logo-Upload-Seite');
   }
 });
 
@@ -1293,6 +1397,133 @@ app.get('/api/smart-share-v2', async (req, res) => {
   }
 });
 
+// Bulk Smart Share V2 - Mehrere Fotos gleichzeitig teilen
+app.get('/api/bulk-smart-share', async (req, res) => {
+  try {
+    console.log('📱 Bulk Smart Share V2 request');
+    
+    // Get photo IDs from query parameter
+    const photosParam = req.query.photos;
+    const mode = req.query.mode || 'auto'; // 'wifi', 'gallery', 'auto'
+    
+    if (!photosParam) {
+      return res.status(400).json({
+        success: false,
+        message: 'Parameter "photos" ist erforderlich (comma-separated photo IDs)'
+      });
+    }
+    
+    // Parse photo IDs
+    const photoIds = photosParam.split(',').map(id => decodeURIComponent(id.trim()));
+    console.log(`📸 Bulk share request for ${photoIds.length} photos:`, photoIds);
+    
+    // Validate and find all photos
+    const allPhotos = getAllPhotosFromFolders();
+    const foundPhotos = [];
+    const notFoundPhotos = [];
+    
+    for (const photoId of photoIds) {
+      const photo = allPhotos.find(p => 
+        p.filename === path.basename(photoId) || 
+        `${p.folder}/${p.filename}` === photoId ||
+        photoId.includes('/') && photoId.endsWith(`/${p.filename}`)
+      );
+      
+      if (photo) {
+        foundPhotos.push(photo);
+      } else {
+        notFoundPhotos.push(photoId);
+      }
+    }
+    
+    if (foundPhotos.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Keine der angegebenen Fotos gefunden',
+        notFound: notFoundPhotos
+      });
+    }
+    
+    if (notFoundPhotos.length > 0) {
+      console.warn(`⚠️ Some photos not found:`, notFoundPhotos);
+    }
+    
+    // WLAN-Konfiguration laden
+    let wifiConfig;
+    try {
+      if (fs.existsSync(BRANDING_FILE)) {
+        const brandingData = fs.readFileSync(BRANDING_FILE, 'utf8');
+        const branding = JSON.parse(brandingData);
+        wifiConfig = branding.wifiConfig || {
+          enabled: false,
+          ssid: 'Photobooth-WLAN',
+          hasPassword: false
+        };
+      } else {
+        console.warn('⚠️ Branding file does not exist, using defaults');
+        wifiConfig = {
+          enabled: false,
+          ssid: 'Photobooth-WLAN',
+          hasPassword: false
+        };
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not load WLAN config, using defaults');
+      wifiConfig = {
+        enabled: false,
+        ssid: 'Photobooth-WLAN',  
+        hasPassword: false
+      };
+    }
+    
+    // Generiere Bulk-Galerie-URL mit allen Foto-IDs
+    const photoParams = foundPhotos.map(p => encodeURIComponent(`${p.folder}/${p.filename}`)).join(',');
+    const shareUrl = `http://localhost:3001/bulk-gallery?photos=${photoParams}`;
+    
+    // Erstelle Thumbnail URLs für die Fotos
+    const photosWithThumbnails = foundPhotos.map(photo => ({
+      id: `${photo.folder}/${photo.filename}`,
+      filename: photo.filename,
+      thumbnailUrl: `http://localhost:3001/api/photos/${encodeURIComponent(photo.folder)}/${encodeURIComponent(photo.filename)}/thumbnail?size=100`
+    }));
+    
+    console.log(`📱 Generated bulk share URL: ${shareUrl}`);
+    
+    const result = {
+      success: true,
+      totalPhotos: foundPhotos.length,
+      shareUrl: shareUrl,
+      instructions: `${foundPhotos.length} Fotos erfolgreich geteilt`,
+      wifiConfig: wifiConfig,
+      photos: photosWithThumbnails
+    };
+    
+    // Füge Warnungen hinzu falls einige Fotos nicht gefunden wurden
+    if (notFoundPhotos.length > 0) {
+      result.warnings = `${notFoundPhotos.length} Fotos nicht gefunden: ${notFoundPhotos.join(', ')}`;
+    }
+    
+    // QR-Codes je nach Modus generieren
+    if (mode === 'wifi' || mode === 'auto') {
+      const wifiQrData = `WIFI:T:WPA;S:${wifiConfig.ssid};P:${wifiConfig.hasPassword ? 'password123' : ''};H:false;;${shareUrl}`;
+      result.wifiQrCode = await QRCode.toDataURL(wifiQrData);
+    }
+    
+    if (mode === 'gallery' || mode === 'auto') {
+      result.galleryQrCode = await QRCode.toDataURL(shareUrl);
+    }
+    
+    console.log(`✅ Bulk Smart Share generated for ${foundPhotos.length} photos`);
+    res.json(result);
+  } catch (error) {
+    console.error('❌ Error in bulk-smart-share:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Fehler beim Erstellen des Bulk-Share-Links: ' + error.message
+    });
+  }
+});
+
 // QR-Code für einzelnes Foto (verwendet von PhotoViewPage)
 app.get('/api/photos/:filename/qr', async (req, res) => {
   try {
@@ -1422,14 +1653,28 @@ app.post('/api/branding/upload', upload.single('logo'), (req, res) => {
       });
     }
     
-    // Datei ins Branding-Verzeichnis verschieben
-    const filename = `logo-${Date.now()}${path.extname(req.file.originalname)}`;
+    // SCHRITT 1: Alle bestehenden Logo-Dateien löschen
+    console.log('🗑️ Lösche bestehende Logo-Dateien...');
+    try {
+      const files = fs.readdirSync(BRANDING_DIR);
+      const logoFiles = files.filter(file => /\.(png|jpg|jpeg|svg)$/i.test(file));
+      logoFiles.forEach(file => {
+        const filepath = path.join(BRANDING_DIR, file);
+        fs.unlinkSync(filepath);
+        console.log(`✅ Alte Logo-Datei gelöscht: ${file}`);
+      });
+    } catch (cleanupError) {
+      console.warn('⚠️ Fehler beim Löschen alter Logo-Dateien:', cleanupError);
+    }
+    
+    // SCHRITT 2: Neues Logo mit festem Namen speichern
+    const fileExtension = path.extname(req.file.originalname);
+    const filename = `logo${fileExtension}`; // Fester Name ohne Timestamp
     const targetPath = path.join(BRANDING_DIR, filename);
     
     fs.renameSync(req.file.path, targetPath);
     
-    // INTUITIV: Logo-Upload deaktiviert automatisch Text-Branding
-    // Speichere aktuellen Text-Branding als Backup und deaktiviere es
+    // SCHRITT 3: Text-Branding deaktivieren (Logo hat Vorrang)
     const brandingPath = path.join(BRANDING_DIR, 'branding.json');
     if (fs.existsSync(brandingPath)) {
       const currentBranding = JSON.parse(fs.readFileSync(brandingPath, 'utf-8'));
@@ -1444,7 +1689,7 @@ app.post('/api/branding/upload', upload.single('logo'), (req, res) => {
       console.log('🔄 Text-Branding deaktiviert, Logo hat jetzt Vorrang');
     }
     
-    console.log(`✅ Logo hochgeladen: ${filename}`);
+    console.log(`✅ Logo erfolgreich ersetzt: ${filename}`);
     
     res.json({
       success: true,
@@ -1515,6 +1760,62 @@ app.delete('/api/branding/logo', (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Fehler beim Löschen des Logos: ' + error.message
+    });
+  }
+});
+
+// Branding-Timestamp für Live-Updates
+app.get('/api/branding/timestamp', (req, res) => {
+  try {
+    console.log('🕐 GET /api/branding/timestamp called');
+    
+    let latestTimestamp = 0;
+    
+    // Prüfe branding.json
+    const brandingPath = path.join(BRANDING_DIR, 'branding.json');
+    if (fs.existsSync(brandingPath)) {
+      const stats = fs.statSync(brandingPath);
+      latestTimestamp = Math.max(latestTimestamp, stats.mtime.getTime());
+    }
+    
+    // Prüfe auf Logo-Dateien
+    if (fs.existsSync(BRANDING_DIR)) {
+      const files = fs.readdirSync(BRANDING_DIR);
+      const logoFiles = files.filter(file => /\.(png|jpg|jpeg|svg)$/i.test(file));
+      logoFiles.forEach(file => {
+        const filepath = path.join(BRANDING_DIR, file);
+        const stats = fs.statSync(filepath);
+        latestTimestamp = Math.max(latestTimestamp, stats.mtime.getTime());
+      });
+    }
+    
+    res.json({
+      success: true,
+      timestamp: latestTimestamp,
+      iso: new Date(latestTimestamp).toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Error getting branding timestamp:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Fehler beim Abrufen des Branding-Timestamps: ' + error.message
+    });
+  }
+});
+
+// Öffentliche QR-Code-Route für Logo-Upload (ohne Authentifizierung für img-Elemente)
+app.get('/api/logo-upload-qr', async (req, res) => {
+  try {
+    console.log('📱 GET /api/logo-upload-qr called');
+    const url = 'http://localhost:3001/mobile-logo-upload';
+    const qr = await QRCode.toDataURL(url);
+    const img = Buffer.from(qr.split(',')[1], 'base64');
+    res.set('Content-Type', 'image/png').send(img);
+  } catch (error) {
+    console.error('❌ Error generating logo upload QR code:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Fehler beim Generieren des QR-Codes: ' + error.message
     });
   }
 });

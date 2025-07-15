@@ -27,6 +27,7 @@ import SortIcon from '@mui/icons-material/Sort';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import PhotoSelectionBar from '../components/PhotoSelectionBar';
+import BulkSmartShareDialog from '../components/BulkSmartShareDialog';
 
 interface PhotoFolder {
   name: string;
@@ -45,6 +46,8 @@ const FoldersOverviewPage: React.FC = () => {
   const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, severity: 'success' | 'error' }>({ 
     open: false, message: '', severity: 'success' 
   });
+  const [bulkShareDialogOpen, setBulkShareDialogOpen] = useState(false);
+  const [collectedPhotoIds, setCollectedPhotoIds] = useState<string[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -128,13 +131,53 @@ const FoldersOverviewPage: React.FC = () => {
     }
   };
 
-  const handleShare = () => {
-    // TODO: Implement bulk sharing
-    setSnackbar({
-      open: true,
-      message: 'Bulk-Teilen wird in einer zukünftigen Version verfügbar sein',
-      severity: 'success'
-    });
+  const handleShare = async () => {
+    if (selectedFolders.size === 0) {
+      setSnackbar({
+        open: true,
+        message: 'Keine Ordner ausgewählt zum Teilen',
+        severity: 'error'
+      });
+      return;
+    }
+
+    try {
+      // Sammle alle Fotos aus den ausgewählten Ordnern
+      const allPhotoIds: string[] = [];
+      
+      for (const folderName of Array.from(selectedFolders)) {
+        // Lade Fotos für jeden ausgewählten Ordner
+        const response = await fetch(`http://localhost:3001/api/folders/${encodeURIComponent(folderName)}/photos`);
+        if (response.ok) {
+          const data = await response.json();
+          const folderPhotos = data.photos || [];
+          
+          // Füge alle Foto-IDs aus diesem Ordner hinzu
+          const photoIds = folderPhotos.map((photo: any) => `${folderName}/${photo.filename}`);
+          allPhotoIds.push(...photoIds);
+        }
+      }
+
+      if (allPhotoIds.length === 0) {
+        setSnackbar({
+          open: true,
+          message: 'Keine Fotos in den ausgewählten Ordnern gefunden',
+          severity: 'error'
+        });
+        return;
+      }
+
+      // Öffne den Bulk Smart Share Dialog mit allen gesammelten Fotos
+      setCollectedPhotoIds(allPhotoIds);
+      setBulkShareDialogOpen(true);
+    } catch (error) {
+      console.error('Error collecting photos for bulk share:', error);
+      setSnackbar({
+        open: true,
+        message: 'Fehler beim Sammeln der Fotos zum Teilen',
+        severity: 'error'
+      });
+    }
   };
 
   const handleCloseSelection = () => {
@@ -527,6 +570,16 @@ const FoldersOverviewPage: React.FC = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Bulk Smart Share Dialog */}
+      <BulkSmartShareDialog
+        open={bulkShareDialogOpen}
+        onClose={() => {
+          setBulkShareDialogOpen(false);
+          setCollectedPhotoIds([]);
+        }}
+        photoIds={collectedPhotoIds}
+      />
     </Box>
   );
 };

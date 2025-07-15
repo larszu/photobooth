@@ -23,6 +23,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import HomeIcon from '@mui/icons-material/Home';
 import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
 import PhotoSelectionBar from '../components/PhotoSelectionBar';
+import BulkSmartShareDialog from '../components/BulkSmartShareDialog';
 import { AuthContext } from '../context/AuthContext';
 
 const GalleryPage: React.FC = () => {
@@ -33,6 +34,7 @@ const GalleryPage: React.FC = () => {
   const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, severity: 'success' | 'error' }>({ 
     open: false, message: '', severity: 'success' 
   });
+  const [bulkShareDialogOpen, setBulkShareDialogOpen] = useState(false);
   const navigate = useNavigate();
   const authContext = useContext(AuthContext);
 
@@ -110,51 +112,129 @@ const GalleryPage: React.FC = () => {
   };
 
   const handleMoveToTrash = async () => {
+    console.log('🗑️ handleMoveToTrash called with selected photos:', Array.from(selectedPhotos));
+    
     try {
       const photoNames = Array.from(selectedPhotos);
-      for (const photoName of photoNames) {
-        const response = await fetch(`http://localhost:3001/api/photos/${encodeURIComponent(photoName)}/trash`, {
-          method: 'POST'
+      
+      if (photoNames.length === 0) {
+        console.warn('⚠️ No photos selected for deletion');
+        setSnackbar({
+          open: true,
+          message: 'Keine Fotos ausgewählt',
+          severity: 'error'
         });
-        if (!response.ok) {
-          throw new Error(`Failed to move photo ${photoName}`);
+        return;
+      }
+      
+      console.log(`🔄 Processing ${photoNames.length} photos for trash`);
+      
+      let successCount = 0;
+      let errorCount = 0;
+      const errors = [];
+      
+      for (const photoName of photoNames) {
+        try {
+          console.log(`🗑️ Moving photo to trash: ${photoName}`);
+          
+          // Extrahiere nur den Dateinamen (ohne Ordnerpfad) für die API
+          const filename = photoName.includes('/') ? photoName.split('/').pop() : photoName;
+          console.log(`📁 Extracted filename: ${filename} from ${photoName}`);
+          
+          const url = `http://localhost:3001/api/photos/${encodeURIComponent(filename || photoName)}/trash`;
+          console.log(`📍 Request URL: ${url}`);
+          
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          console.log(`📡 Response for ${photoName}: ${response.status} ${response.statusText}`);
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`❌ Failed to move ${photoName}: ${response.status} - ${errorText}`);
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+          }
+          
+          const result = await response.json();
+          console.log(`✅ Successfully moved ${photoName}:`, result);
+          successCount++;
+          
+        } catch (photoError) {
+          console.error(`❌ Error moving photo ${photoName}:`, photoError);
+          errorCount++;
+          const errorMessage = photoError instanceof Error ? photoError.message : String(photoError);
+          errors.push(`${photoName}: ${errorMessage}`);
         }
       }
       
-      setSnackbar({
-        open: true,
-        message: `${photoNames.length} Fotos in den Papierkorb verschoben`,
-        severity: 'success'
-      });
+      // Erfolgs-/Fehler-Meldung
+      if (successCount > 0) {
+        setSnackbar({
+          open: true,
+          message: `${successCount} Fotos in den Papierkorb verschoben${errorCount > 0 ? ` (${errorCount} Fehler)` : ''}`,
+          severity: successCount === photoNames.length ? 'success' : 'error'
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: `Fehler beim Verschieben der Fotos: ${errors[0] || 'Unbekannter Fehler'}`,
+          severity: 'error'
+        });
+      }
       
-      // Refresh photos
+      // Log errors for debugging
+      if (errors.length > 0) {
+        console.error('🚨 Errors during move to trash:', errors);
+      }
+      
+      // Refresh photos - auch bei Teilfehlern
+      console.log('🔄 Refreshing photo list...');
       setSelectedPhotos(new Set());
       setSelectionMode(false);
-      const response = await fetch('http://localhost:3001/api/photos');
-      if (response.ok) {
-        const data = await response.json();
-        const photoArray = Array.isArray(data.photos) 
-          ? data.photos.map((photo: any) => typeof photo === 'string' ? photo : photo.filename)
-          : [];
-        setPhotos(photoArray.reverse());
+      
+      try {
+        const response = await fetch('http://localhost:3001/api/photos');
+        if (response.ok) {
+          const data = await response.json();
+          const photoArray = Array.isArray(data.photos) 
+            ? data.photos.map((photo: any) => typeof photo === 'string' ? photo : photo.filename)
+            : [];
+          setPhotos(photoArray.reverse());
+          console.log(`📷 Refreshed photo list: ${photoArray.length} photos`);
+        } else {
+          console.error('❌ Failed to refresh photos:', response.status, response.statusText);
+        }
+      } catch (refreshError) {
+        console.error('❌ Error refreshing photos:', refreshError);
       }
+      
     } catch (error) {
-      console.error('Error moving photos to trash:', error);
+      console.error('❌ Critical error in handleMoveToTrash:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
       setSnackbar({
         open: true,
-        message: 'Fehler beim Verschieben der Fotos',
+        message: `Kritischer Fehler: ${errorMessage}`,
         severity: 'error'
       });
     }
   };
 
   const handleShare = () => {
-    // TODO: Implement bulk sharing
-    setSnackbar({
-      open: true,
-      message: 'Bulk-Teilen wird in einer zukünftigen Version verfügbar sein',
-      severity: 'success'
-    });
+    if (selectedPhotos.size === 0) {
+      setSnackbar({
+        open: true,
+        message: 'Keine Fotos ausgewählt zum Teilen',
+        severity: 'error'
+      });
+      return;
+    }
+
+    // Öffne den Bulk Smart Share Dialog
+    setBulkShareDialogOpen(true);
   };
 
   const handleCloseSelection = () => {
@@ -439,6 +519,13 @@ const GalleryPage: React.FC = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Bulk Smart Share Dialog */}
+      <BulkSmartShareDialog
+        open={bulkShareDialogOpen}
+        onClose={() => setBulkShareDialogOpen(false)}
+        photoIds={Array.from(selectedPhotos)}
+      />
     </Box>
   );
 };

@@ -56,7 +56,7 @@ router.post('/text', express.json(), (req, res) => {
 
 // GET /api/admin/branding/logo-qr
 router.get('/logo-qr', async (req, res) => {
-  const url = 'http://<pi-ip>:3001/admin/branding-upload';
+  const url = 'http://localhost:3001/mobile-logo-upload';
   const qr = await QRCode.toDataURL(url);
   const img = Buffer.from(qr.split(',')[1], 'base64');
   res.set('Content-Type', 'image/png').send(img);

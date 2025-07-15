@@ -220,12 +220,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               {loading ? 'Anmelden...' : 'Anmelden'}
             </Button>
           </Box>
-
-          <Box sx={{ mt: 3, textAlign: 'center' }}>
-            <Typography variant="caption" color="text.secondary">
-              Standard: admin / photobooth2025
-            </Typography>
-          </Box>
         </CardContent>
       </Card>
 

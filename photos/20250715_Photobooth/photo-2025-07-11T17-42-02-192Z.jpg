@@ -1,0 +1,9 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+      <rect width="100%" height="100%" fill="#f0f0f0"/>
+      <text x="400" y="300" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#333">
+        Demo Photo: photo-2025-07-11T17-42-02-192Z.jpg
+      </text>
+      <text x="400" y="350" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#666">
+        Generated: 11.7.2025, 19:42:02
+      </text>
+    </svg>

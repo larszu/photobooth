@@ -26,6 +26,7 @@ import RestoreIcon from '@mui/icons-material/Restore';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import HomeIcon from '@mui/icons-material/Home';
 import DeleteIcon from '@mui/icons-material/Delete';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import { useNavigate } from 'react-router-dom';
 
 interface TrashPhoto {
@@ -236,6 +237,16 @@ const TrashPage: React.FC = () => {
             Papierkorb ({photos.length} Fotos)
           </Typography>
           
+          {/* Admin Button */}
+          <IconButton 
+            color="inherit"
+            onClick={() => navigate('/admin', { state: { fromInternal: true } })}
+            sx={{ mr: 1 }}
+            title="Admin-Bereich"
+          >
+            <AdminPanelSettingsIcon />
+          </IconButton>
+          
           {/* Multi-Select Toggle */}
           {photos.length > 0 && (
             <Button 
@@ -440,12 +451,11 @@ const TrashPage: React.FC = () => {
                 </Button>
                 <Button 
                   variant="outlined" 
-                  onClick={() => {
-                    setSelectionMode(false);
-                    setSelectedPhotos(new Set());
-                  }}
+                  color="error"
+                  onClick={() => setEmptyTrashConfirm(true)}
+                  startIcon={<DeleteSweepIcon />}
                 >
-                  Abbrechen
+                  Papierkorb leeren ({photos.length})
                 </Button>
               </Box>
             )}
@@ -460,7 +470,7 @@ const TrashPage: React.FC = () => {
                   startIcon={<DeleteSweepIcon />}
                   size="large"
                 >
-                  Alle Fotos endgültig löschen ({photos.length})
+                  Papierkorb leeren ({photos.length})
                 </Button>
               </Box>
             )}
