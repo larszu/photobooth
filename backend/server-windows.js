@@ -86,7 +86,7 @@ function createTodayFolder() {
   };
 }
 
-// Hole alle Tagesordner (für Galerie)
+// Hole alle Tagesordner (für Galerie) - nur Ordner mit Fotos
 function getAllPhotoFolders() {
   if (!fs.existsSync(PHOTOS_DIR)) {
     return [];
@@ -98,7 +98,22 @@ function getAllPhotoFolders() {
     const isDirectory = fs.statSync(itemPath).isDirectory();
     const isDateFolder = /^\d{8}_Photobooth$/.test(item); // YYYYMMDD_Photobooth format
     const isNotTrash = item !== 'papierkorb';
-    return isDirectory && isDateFolder && isNotTrash;
+    
+    if (!isDirectory || !isDateFolder || !isNotTrash) {
+      return false;
+    }
+    
+    // Prüfe ob der Ordner tatsächlich Fotos enthält
+    try {
+      const files = fs.readdirSync(itemPath);
+      const hasPhotos = files.some(file => /\.(jpg|jpeg|png|svg)$/i.test(file));
+      
+      // Nur für die Anzeige filtern, nicht automatisch löschen
+      return hasPhotos;
+    } catch (error) {
+      console.warn(`⚠️ Error checking folder ${item}:`, error);
+      return false;
+    }
   });
   
   return folders.sort().reverse(); // Neueste zuerst
@@ -136,6 +151,43 @@ function getAllPhotosFromFolders() {
   
   // Nach Erstellungsdatum sortieren (neueste zuerst)
   return allPhotos.sort((a, b) => new Date(b.created) - new Date(a.created));
+}
+
+// Hilfsfunktion: Prüfe und lösche leere Ordner
+function cleanupEmptyFolders() {
+  if (!fs.existsSync(PHOTOS_DIR)) {
+    return;
+  }
+  
+  const items = fs.readdirSync(PHOTOS_DIR);
+  let deletedFolders = 0;
+  
+  items.forEach(item => {
+    const itemPath = path.join(PHOTOS_DIR, item);
+    
+    try {
+      const isDirectory = fs.statSync(itemPath).isDirectory();
+      const isDateFolder = /^\d{8}_Photobooth$/.test(item);
+      const isNotTrash = item !== 'papierkorb';
+      
+      if (isDirectory && isDateFolder && isNotTrash) {
+        const files = fs.readdirSync(itemPath);
+        const hasPhotos = files.some(file => /\.(jpg|jpeg|png|svg)$/i.test(file));
+        
+        if (!hasPhotos) {
+          console.log(`🗑️ Cleaning up empty folder: ${item}`);
+          fs.rmSync(itemPath, { recursive: true, force: true });
+          deletedFolders++;
+        }
+      }
+    } catch (error) {
+      console.warn(`⚠️ Error cleaning folder ${item}:`, error);
+    }
+  });
+  
+  if (deletedFolders > 0) {
+    console.log(`✅ Cleaned up ${deletedFolders} empty folder(s)`);
+  }
 }
 
 // === STATIC FILE SERVING ===
@@ -627,6 +679,9 @@ app.delete('/api/photos', (req, res) => {
     
     console.log(`🗑️ Operation complete: ${movedCount} moved, ${errorCount} errors`);
     
+    // Prüfe und lösche leere Ordner
+    cleanupEmptyFolders();
+    
     res.json({
       success: true,
       message: `${movedCount} Fotos in den Papierkorb verschoben`,
@@ -1094,6 +1149,9 @@ app.post('/api/photos/:filename/trash', (req, res) => {
     
     console.log(`✅ Photo moved to trash: ${filename} -> ${path.basename(finalTargetPath)} (from ${originalFolder})`);
     
+    // Prüfe und lösche leere Ordner
+    cleanupEmptyFolders();
+
     res.json({
       success: true,
       message: `Foto "${filename}" in den Papierkorb verschoben`,
