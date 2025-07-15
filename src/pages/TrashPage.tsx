@@ -15,10 +15,10 @@ import {
   DialogActions,
   Snackbar,
   Alert,
-  Fab,
   Tooltip,
   Breadcrumbs,
-  Link
+  Link,
+  Checkbox
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
@@ -45,6 +45,10 @@ const TrashPage: React.FC = () => {
     message: string, 
     severity: 'success' | 'error' | 'info' 
   }>({ open: false, message: '', severity: 'success' });
+  
+  // Multi-Selection State
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   
   const navigate = useNavigate();
 
@@ -197,6 +201,24 @@ const TrashPage: React.FC = () => {
     });
   };
 
+
+
+  const deleteSelectedPhotos = async () => {
+    for (const filename of selectedPhotos) {
+      await handleDeletePermanently(filename);
+    }
+    setSelectedPhotos(new Set());
+    setSelectionMode(false);
+  };
+
+  const restoreSelectedPhotos = async () => {
+    for (const filename of selectedPhotos) {
+      await handleRestore(filename);
+    }
+    setSelectedPhotos(new Set());
+    setSelectionMode(false);
+  };
+
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50' }}>
       {/* App Bar */}
@@ -213,6 +235,23 @@ const TrashPage: React.FC = () => {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Papierkorb ({photos.length} Fotos)
           </Typography>
+          
+          {/* Multi-Select Toggle */}
+          {photos.length > 0 && (
+            <Button 
+              color="inherit"
+              onClick={() => setSelectionMode(!selectionMode)}
+              sx={{
+                p: { xs: 1, sm: 1.5 },
+                fontSize: { xs: '0.8rem', sm: '0.9rem' },
+                fontWeight: 500,
+                textTransform: 'none',
+                minWidth: 'auto'
+              }}
+            >
+              {selectionMode ? 'Abbrechen' : 'Auswählen'}
+            </Button>
+          )}
         </Toolbar>
       </AppBar>
 
@@ -288,7 +327,44 @@ const TrashPage: React.FC = () => {
               }}
             >
               {photos.map((photo) => (
-                <Card key={photo.filename} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <Card 
+                  key={photo.filename} 
+                  sx={{ 
+                    height: '100%', 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    position: 'relative',
+                    border: selectionMode && selectedPhotos.has(photo.filename) ? '3px solid' : '1px solid',
+                    borderColor: selectionMode && selectedPhotos.has(photo.filename) ? 'primary.main' : 'divider',
+                  }}
+                >
+                  {/* Selection Checkbox */}
+                  {selectionMode && (
+                    <Checkbox
+                      checked={selectedPhotos.has(photo.filename)}
+                      onChange={() => {
+                        const newSelection = new Set(selectedPhotos);
+                        if (newSelection.has(photo.filename)) {
+                          newSelection.delete(photo.filename);
+                        } else {
+                          newSelection.add(photo.filename);
+                        }
+                        setSelectedPhotos(newSelection);
+                      }}
+                      sx={{
+                        position: 'absolute',
+                        top: 4,
+                        right: 4,
+                        zIndex: 10,
+                        backgroundColor: 'rgba(255,255,255,0.9)',
+                        borderRadius: 1,
+                        '&:hover': {
+                          backgroundColor: 'rgba(255,255,255,1)'
+                        }
+                      }}
+                    />
+                  )}
+                  
                   <CardMedia
                     component="img"
                     sx={{
@@ -314,47 +390,83 @@ const TrashPage: React.FC = () => {
                       {formatDate(photo.created)}
                     </Typography>
                   </Box>
-                  <CardActions sx={{ justifyContent: 'space-between', px: 1, pb: 1 }}>
-                    <Tooltip title="Wiederherstellen">
-                      <IconButton 
-                        size="small" 
-                        color="primary"
-                        onClick={() => handleRestore(photo.filename)}
-                      >
-                        <RestoreIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Permanent löschen">
-                      <IconButton 
-                        size="small" 
-                        color="error"
-                        onClick={() => setDeleteConfirm(photo.filename)}
-                      >
-                        <DeleteForeverIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </CardActions>
+                  
+                  {!selectionMode && (
+                    <CardActions sx={{ justifyContent: 'space-between', px: 1, pb: 1 }}>
+                      <Tooltip title="Wiederherstellen">
+                        <IconButton 
+                          size="small" 
+                          color="primary"
+                          onClick={() => handleRestore(photo.filename)}
+                        >
+                          <RestoreIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Permanent löschen">
+                        <IconButton 
+                          size="small" 
+                          color="error"
+                          onClick={() => setDeleteConfirm(photo.filename)}
+                        >
+                          <DeleteForeverIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </CardActions>
+                  )}
                 </Card>
               ))}
             </Box>
+
+            {/* Aktionen für die Mehrfachauswahl */}
+            {selectionMode && (
+              <Box sx={{ mt: 2, display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
+                <Button 
+                  variant="contained" 
+                  color="primary"
+                  onClick={restoreSelectedPhotos}
+                  disabled={selectedPhotos.size === 0}
+                  startIcon={<RestoreIcon />}
+                >
+                  {`Ausgewählte ${selectedPhotos.size} wiederherstellen`}
+                </Button>
+                <Button 
+                  variant="outlined" 
+                  color="error"
+                  onClick={deleteSelectedPhotos}
+                  disabled={selectedPhotos.size === 0}
+                  startIcon={<DeleteForeverIcon />}
+                >
+                  {`Ausgewählte ${selectedPhotos.size} endgültig löschen`}
+                </Button>
+                <Button 
+                  variant="outlined" 
+                  onClick={() => {
+                    setSelectionMode(false);
+                    setSelectedPhotos(new Set());
+                  }}
+                >
+                  Abbrechen
+                </Button>
+              </Box>
+            )}
+
+            {/* Globale Aktionen */}
+            {!selectionMode && photos.length > 0 && (
+              <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
+                <Button 
+                  variant="outlined" 
+                  color="error"
+                  onClick={() => setEmptyTrashConfirm(true)}
+                  startIcon={<DeleteSweepIcon />}
+                  size="large"
+                >
+                  Alle Fotos endgültig löschen ({photos.length})
+                </Button>
+              </Box>
+            )}
           </>
         )}
       </Box>
-
-      {/* Floating Action Button - Papierkorb leeren */}
-      {photos.length > 0 && (
-        <Fab
-          color="error"
-          sx={{
-            position: 'fixed',
-            bottom: 16,
-            right: 16
-          }}
-          onClick={() => setEmptyTrashConfirm(true)}
-        >
-          <DeleteSweepIcon />
-        </Fab>
-      )}
 
       {/* Lösch-Bestätigungsdialog */}
       <Dialog open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)}>

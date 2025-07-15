@@ -37,10 +37,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const storedToken = localStorage.getItem('authToken');
       
       if (!storedToken) {
+        console.log('🔓 Kein gespeicherter Token gefunden - Benutzer nicht angemeldet');
         setLoading(false);
         return false;
       }
 
+      console.log('🔍 Prüfe gespeicherten Token...');
       const response = await fetch('/api/auth/status', {
         headers: {
           'Authorization': `Bearer ${storedToken}`,
@@ -58,18 +60,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return true;
       } else {
         // Token ungültig - aufräumen
+        console.log('❌ Token ungültig - Benutzer wird ausgeloggt');
         localStorage.removeItem('authToken');
         localStorage.removeItem('user');
         setToken(null);
         setUser(null);
         setIsAuthenticated(false);
-        console.log('❌ Auth-Status: Nicht angemeldet oder Token ungültig');
         setLoading(false);
         return false;
       }
     } catch (error) {
       console.error('❌ Auth-Check Fehler:', error);
       // Bei Fehler ausloggen
+      console.log('🔓 Bei Fehler wird Benutzer ausgeloggt');
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
       setToken(null);
@@ -91,6 +94,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Logout
   const logout = async () => {
     try {
+      console.log('🔓 Logout wird ausgeführt...');
       // Server-seitigen Logout
       await fetch('/api/auth/logout', {
         method: 'POST',
@@ -108,7 +112,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(null);
       setIsAuthenticated(false);
       setAutoLogoutEnabled(false); // Auto-Logout deaktivieren
-      console.log('✅ AuthContext: Logout erfolgreich');
+      console.log('✅ AuthContext: Logout erfolgreich - Benutzer ist jetzt abgemeldet');
     }
   };
 
@@ -130,6 +134,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Initial auth check beim Laden
   useEffect(() => {
+    // Beim ersten Laden der Anwendung immer prüfen
+    console.log('🚀 AuthContext initialisiert - prüfe Anmeldestatus...');
     checkAuth();
   }, []);
 

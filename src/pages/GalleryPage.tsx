@@ -22,8 +22,6 @@ import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import HomeIcon from '@mui/icons-material/Home';
 import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
-import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
-import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import PhotoSelectionBar from '../components/PhotoSelectionBar';
 import { AuthContext } from '../context/AuthContext';
 
@@ -198,18 +196,19 @@ const GalleryPage: React.FC = () => {
           </Typography>
           
           {/* Multi-Select Toggle */}
-          <IconButton 
+          <Button 
             color="inherit"
             onClick={() => setSelectionMode(!selectionMode)}
             sx={{
               p: { xs: 1, sm: 1.5 },
-              '& .MuiSvgIcon-root': {
-                fontSize: { xs: '1.2rem', sm: '1.5rem' }
-              }
+              fontSize: { xs: '0.8rem', sm: '0.9rem' },
+              fontWeight: 500,
+              textTransform: 'none',
+              minWidth: 'auto'
             }}
           >
-            {selectionMode ? <CheckBoxIcon /> : <CheckBoxOutlineBlankIcon />}
-          </IconButton>
+            {selectionMode ? 'Abbrechen' : 'Auswählen'}
+          </Button>
           
           <IconButton 
             color="inherit" 
@@ -317,7 +316,15 @@ const GalleryPage: React.FC = () => {
                     {selectionMode && (
                       <Checkbox
                         checked={selectedPhotos.has(photo)}
-                        onChange={(e) => handlePhotoSelect(photo, e as any)}
+                        onChange={() => {
+                          const newSelection = new Set(selectedPhotos);
+                          if (newSelection.has(photo)) {
+                            newSelection.delete(photo);
+                          } else {
+                            newSelection.add(photo);
+                          }
+                          setSelectedPhotos(newSelection);
+                        }}
                         sx={{
                           position: 'absolute',
                           top: 4,
