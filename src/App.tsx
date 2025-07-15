@@ -1,6 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
 import GalleryPage from './pages/GalleryPage';
 import FoldersOverviewPage from './pages/FoldersOverviewPage';
 import FolderGalleryPage from './pages/FolderGalleryPage';
@@ -23,20 +25,30 @@ const theme = createTheme({
 const App: React.FC = () => (
   <ThemeProvider theme={theme}>
     <CssBaseline />
-    <AppProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<Navigate to="/gallery" />} />
-          <Route path="/gallery" element={<FoldersOverviewPage />} />
-          <Route path="/gallery/all" element={<GalleryPage />} />
-          <Route path="/gallery/folder/:folderName" element={<FolderGalleryPage />} />
-          <Route path="/photo/new" element={<PhotoPage />} />
-          <Route path="/view/:id" element={<PhotoViewPage />} />
-          <Route path="/admin" element={<AdminPage />} />
-          <Route path="/trash" element={<TrashPage />} />
-        </Routes>
-      </Router>
-    </AppProvider>
+    <AuthProvider>
+      <AppProvider>
+        <Router>
+          <Routes>
+            <Route path="/" element={<Navigate to="/gallery" />} />
+            <Route path="/gallery" element={<FoldersOverviewPage />} />
+            <Route path="/gallery/all" element={<GalleryPage />} />
+            <Route path="/gallery/folder/:folderName" element={<FolderGalleryPage />} />
+            <Route path="/photo/new" element={<PhotoPage />} />
+            <Route path="/view/:id" element={<PhotoViewPage />} />
+            <Route path="/admin" element={
+              <ProtectedRoute>
+                <AdminPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/trash" element={
+              <ProtectedRoute>
+                <TrashPage />
+              </ProtectedRoute>
+            } />
+          </Routes>
+        </Router>
+      </AppProvider>
+    </AuthProvider>
   </ThemeProvider>
 );
 

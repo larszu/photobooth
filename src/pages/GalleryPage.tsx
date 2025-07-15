@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Box, 
@@ -25,6 +25,7 @@ import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import PhotoSelectionBar from '../components/PhotoSelectionBar';
+import { AuthContext } from '../context/AuthContext';
 
 const GalleryPage: React.FC = () => {
   const [photos, setPhotos] = useState<string[]>([]);
@@ -35,6 +36,14 @@ const GalleryPage: React.FC = () => {
     open: false, message: '', severity: 'success' 
   });
   const navigate = useNavigate();
+  const authContext = useContext(AuthContext);
+
+  // Deaktiviere Auto-Logout auf der Gallery-Seite
+  useEffect(() => {
+    if (authContext?.disableAutoLogout) {
+      authContext.disableAutoLogout();
+    }
+  }, [authContext]);
 
   console.log('GalleryPage rendered, photos:', photos, 'loading:', loading);
 

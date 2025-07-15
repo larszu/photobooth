@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { Box, Typography, AppBar, Toolbar, IconButton, Button, TextField, Snackbar, Alert, ToggleButtonGroup, ToggleButton, Slider, Dialog, DialogTitle, DialogContent, DialogActions, Breadcrumbs, Link } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -10,7 +10,11 @@ import UploadIcon from '@mui/icons-material/Upload';
 import PaletteIcon from '@mui/icons-material/Palette';
 import HomeIcon from '@mui/icons-material/Home';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import LogoutIcon from '@mui/icons-material/Logout';
 import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
+import OnScreenKeyboard from '../components/OnScreenKeyboard';
+import { useVirtualKeyboard } from '../hooks/useVirtualKeyboard';
 
 const AdminPage: React.FC = () => {
   const [ssid, setSsid] = useState('');
@@ -31,6 +35,27 @@ const AdminPage: React.FC = () => {
   const [secondaryHex, setSecondaryHex] = useState('#f50057');
   
   const navigate = useNavigate();
+  const authContext = useContext(AuthContext);
+
+  // Virtuelle Tastaturen für alle Eingabefelder
+  const ssidKeyboard = useVirtualKeyboard(ssid, setSsid, { autoShow: true });
+  const passwordKeyboard = useVirtualKeyboard(password, setPassword, { autoShow: true });
+  const brandingTextKeyboard = useVirtualKeyboard(brandingText, setBrandingText, { autoShow: true });
+  const [activeKeyboard, setActiveKeyboard] = useState<'none' | 'ssid' | 'password' | 'branding'>('none');
+
+  // Auto-Logout beim Betreten der Admin-Seite aktivieren
+  useEffect(() => {
+    if (authContext?.enableAutoLogout) {
+      authContext.enableAutoLogout();
+    }
+
+    // Cleanup: Auto-Logout beim Verlassen der Komponente
+    return () => {
+      if (authContext?.disableAutoLogout) {
+        authContext.disableAutoLogout();
+      }
+    };
+  }, [authContext]);
 
   // Hilfsfunktionen für Farbkonvertierung
   const hslToHex = (h: number, s: number = 100, l: number = 50): string => {
@@ -298,6 +323,14 @@ const AdminPage: React.FC = () => {
     setSnackbar({ open: true, message: 'Farben gespeichert', severity: 'success' });
   };
 
+  // Logout-Handler
+  const handleLogout = async () => {
+    if (authContext) {
+      await authContext.logout();
+      navigate('/');
+    }
+  };
+
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <AppBar position="static" color="primary">
@@ -335,6 +368,18 @@ const AdminPage: React.FC = () => {
           >
             Admin
           </Typography>
+          <IconButton 
+            color="inherit" 
+            onClick={handleLogout}
+            sx={{
+              p: { xs: 1, sm: 1.5 },
+              '& .MuiSvgIcon-root': {
+                fontSize: { xs: '1.2rem', sm: '1.5rem' }
+              }
+            }}
+          >
+            <LogoutIcon />
+          </IconButton>
         </Toolbar>
       </AppBar>
       
@@ -411,6 +456,10 @@ const AdminPage: React.FC = () => {
               fontSize: { xs: '1rem', md: '1.1rem' }
             }
           }}
+          onFocus={() => setActiveKeyboard('ssid')}
+          onBlur={() => {
+            // Bleibt offen für Touch-Geräte
+          }}
         />
         <TextField 
           label="WLAN-Passwort" 
@@ -425,6 +474,10 @@ const AdminPage: React.FC = () => {
             '& .MuiInputBase-root': {
               fontSize: { xs: '1rem', md: '1.1rem' }
             }
+          }}
+          onFocus={() => setActiveKeyboard('password')}
+          onBlur={() => {
+            // Bleibt offen für Touch-Geräte
           }}
         />
         
@@ -691,6 +744,10 @@ const AdminPage: React.FC = () => {
                     fontSize: { xs: '1rem', md: '1.1rem' }
                   }
                 }}
+                onFocus={() => setActiveKeyboard('branding')}
+                onBlur={() => {
+                  // Bleibt offen für Touch-Geräte
+                }}
               />
               <Button 
                 variant="contained" 
@@ -901,6 +958,34 @@ const AdminPage: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Virtuelle Tastaturen */}
+      <OnScreenKeyboard
+        isVisible={activeKeyboard === 'ssid'}
+        onKeyPress={ssidKeyboard.handleKeyPress}
+        onBackspace={ssidKeyboard.handleBackspace}
+        onEnter={ssidKeyboard.handleEnter}
+        onClose={() => setActiveKeyboard('none')}
+        position="bottom"
+      />
+
+      <OnScreenKeyboard
+        isVisible={activeKeyboard === 'password'}
+        onKeyPress={passwordKeyboard.handleKeyPress}
+        onBackspace={passwordKeyboard.handleBackspace}
+        onEnter={passwordKeyboard.handleEnter}
+        onClose={() => setActiveKeyboard('none')}
+        position="bottom"
+      />
+
+      <OnScreenKeyboard
+        isVisible={activeKeyboard === 'branding'}
+        onKeyPress={brandingTextKeyboard.handleKeyPress}
+        onBackspace={brandingTextKeyboard.handleBackspace}
+        onEnter={brandingTextKeyboard.handleEnter}
+        onClose={() => setActiveKeyboard('none')}
+        position="bottom"
+      />
     </Box>
   );
 };

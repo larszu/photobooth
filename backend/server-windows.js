@@ -2,11 +2,16 @@
 import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
+import session from 'express-session';
+import cookieParser from 'cookie-parser';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs';
 import QRCode from 'qrcode';
 import sharp from 'sharp';
+
+// Import Auth-Modul
+import { login, verifyToken, requireAuth, getAuthStatus } from './auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,6 +22,19 @@ const PORT = 3001;
 // Performance-Optimierung
 app.set('x-powered-by', false);
 app.use(express.json({ limit: '10mb' }));
+
+// Session und Cookie Middleware
+app.use(cookieParser());
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'photobooth-session-2025',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: false, // In Produktion auf true setzen (HTTPS)
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 Stunden
+  }
+}));
 
 // Konfiguration
 const PHOTOS_DIR = path.join(__dirname, '../photos');
@@ -773,6 +791,148 @@ app.delete('/api/trash', (req, res) => {
   }
 });
 
+// ===== AUTH ROUTES =====
+
+// Login-Route
+app.post('/api/auth/login', async (req, res) => {
+  const { username, password } = req.body;
+  
+  if (!username || !password) {
+    return res.status(400).json({
+      success: false,
+      message: 'Benutzername und Passwort erforderlich'
+    });
+  }
+  
+  const result = await login(username, password);
+  
+  if (result.success) {
+    // Token in Session und Cookie speichern
+    req.session.token = result.token;
+    req.session.user = result.user;
+    
+    res.cookie('authToken', result.token, {
+      httpOnly: true,
+      secure: false, // In Produktion auf true setzen
+      maxAge: 24 * 60 * 60 * 1000 // 24 Stunden
+    });
+    
+    res.json({
+      success: true,
+      message: 'Erfolgreich angemeldet',
+      user: result.user,
+      token: result.token
+    });
+  } else {
+    res.status(401).json(result);
+  }
+});
+
+// Logout-Route
+app.post('/api/auth/logout', (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      console.error('❌ Session destroy error:', err);
+      return res.status(500).json({
+        success: false,
+        message: 'Fehler beim Abmelden'
+      });
+    }
+    
+    res.clearCookie('authToken');
+    res.json({
+      success: true,
+      message: 'Erfolgreich abgemeldet'
+    });
+  });
+});
+
+// Auth-Status prüfen
+app.get('/api/auth/status', (req, res) => {
+  const status = getAuthStatus(req);
+  res.json(status);
+});
+
+// Passwort ändern
+app.post('/api/auth/change-password', requireAuth, async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+  const username = req.user.username;
+  
+  if (!oldPassword || !newPassword) {
+    return res.status(400).json({
+      success: false,
+      message: 'Altes und neues Passwort erforderlich'
+    });
+  }
+  
+  const result = await changePassword(username, oldPassword, newPassword);
+  res.json(result);
+});
+
+// Geschützte Admin-Routen - Authentifizierung erforderlich
+app.use('/api/admin', requireAuth);
+
+// Server starten
+app.listen(PORT, () => {
+  console.log();
+  console.log('🚀 Photobooth Backend (Windows Demo) gestartet!');
+  console.log(`📡 Server läuft auf: http://localhost:${PORT}`);
+  console.log(`📁 Fotos-Verzeichnis: ${PHOTOS_DIR}`);
+  console.log(`🗑️ Papierkorb-Verzeichnis: ${TRASH_DIR}`);
+  console.log(`🎨 Branding-Verzeichnis: ${BRANDING_DIR}`);
+  console.log();
+  
+  // Verzeichnis-Status anzeigen
+  const photosExist = fs.existsSync(PHOTOS_DIR);
+  const trashExist = fs.existsSync(TRASH_DIR);
+  const brandingExist = fs.existsSync(BRANDING_DIR);
+  
+  let photosCount = 0;
+  let trashCount = 0;
+  
+  if (photosExist) {
+    try {
+      const allPhotos = getAllPhotosFromFolders();
+      photosCount = allPhotos.length;
+    } catch (error) {
+      console.error('Error counting photos:', error);
+    }
+  }
+  
+  if (trashExist) {
+    try {
+      const trashFiles = fs.readdirSync(TRASH_DIR).filter(file => /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(file));
+      trashCount = trashFiles.length;
+    } catch (error) {
+      console.error('Error counting trash:', error);
+    }
+  }
+  
+  console.log('📊 Verzeichnis-Status:');
+  console.log(`   📁 PHOTOS_DIR exists: ${photosExist}`);
+  console.log(`   🗑️ TRASH_DIR exists: ${trashExist}`);
+  console.log(`   🎨 BRANDING_DIR exists: ${brandingExist}`);
+  console.log(`   📊 Fotos im Verzeichnis: ${photosCount}`);
+  console.log(`   🗑️ Fotos im Papierkorb: ${trashCount}`);
+  console.log();
+  console.log('🔧 Demo-Modus aktiv:');
+  console.log('   📸 Kamera: Mock (simuliert)');
+  console.log('   💡 GPIO: Mock (simuliert)');
+  console.log('   🖼️ Fotos: Funktional');
+  console.log('   🗑️ Papierkorb: Funktional');
+  console.log();
+  console.log('🌐 Test die API:');
+  console.log(`   curl http://localhost:${PORT}/api/status`);
+  console.log(`   curl http://localhost:${PORT}/api/photos`);
+  console.log(`   curl http://localhost:${PORT}/api/trash`);
+  console.log(`   curl -X DELETE http://localhost:${PORT}/api/photos`);
+  console.log();
+  console.log('✨ Frontend startet auf: http://localhost:5173');
+  console.log('✨ Admin Panel: http://localhost:5173/admin');
+  console.log('✨ Papierkorb: http://localhost:5173/trash');
+  console.log();
+});
+
 // === EINZELNE FOTO/ORDNER PAPIERKORB APIs ===
 
 // Einzelnes Foto in den Papierkorb verschieben
@@ -1173,6 +1333,7 @@ app.get('/api/photos/:filename/qr', async (req, res) => {
 });
 
 // === BRANDING API ===
+
 // Branding-Text setzen
 app.post('/api/branding/text', express.json(), (req, res) => {
   try {
@@ -1356,65 +1517,4 @@ app.delete('/api/branding/logo', (req, res) => {
       message: 'Fehler beim Löschen des Logos: ' + error.message
     });
   }
-});
-
-// Server starten
-app.listen(PORT, () => {
-  console.log();
-  console.log('🚀 Photobooth Backend (Windows Demo) gestartet!');
-  console.log(`📡 Server läuft auf: http://localhost:${PORT}`);
-  console.log(`📁 Fotos-Verzeichnis: ${PHOTOS_DIR}`);
-  console.log(`🗑️ Papierkorb-Verzeichnis: ${TRASH_DIR}`);
-  console.log(`🎨 Branding-Verzeichnis: ${BRANDING_DIR}`);
-  console.log();
-  
-  // Verzeichnis-Status anzeigen
-  const photosExist = fs.existsSync(PHOTOS_DIR);
-  const trashExist = fs.existsSync(TRASH_DIR);
-  const brandingExist = fs.existsSync(BRANDING_DIR);
-  
-  let photosCount = 0;
-  let trashCount = 0;
-  
-  if (photosExist) {
-    try {
-      const allPhotos = getAllPhotosFromFolders();
-      photosCount = allPhotos.length;
-    } catch (error) {
-      console.error('Error counting photos:', error);
-    }
-  }
-  
-  if (trashExist) {
-    try {
-      const trashFiles = fs.readdirSync(TRASH_DIR).filter(file => /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(file));
-      trashCount = trashFiles.length;
-    } catch (error) {
-      console.error('Error counting trash:', error);
-    }
-  }
-  
-  console.log('📊 Verzeichnis-Status:');
-  console.log(`   📁 PHOTOS_DIR exists: ${photosExist}`);
-  console.log(`   🗑️ TRASH_DIR exists: ${trashExist}`);
-  console.log(`   🎨 BRANDING_DIR exists: ${brandingExist}`);
-  console.log(`   📊 Fotos im Verzeichnis: ${photosCount}`);
-  console.log(`   🗑️ Fotos im Papierkorb: ${trashCount}`);
-  console.log();
-  console.log('🔧 Demo-Modus aktiv:');
-  console.log('   📸 Kamera: Mock (simuliert)');
-  console.log('   💡 GPIO: Mock (simuliert)');
-  console.log('   🖼️ Fotos: Funktional');
-  console.log('   🗑️ Papierkorb: Funktional');
-  console.log();
-  console.log('🌐 Test die API:');
-  console.log(`   curl http://localhost:${PORT}/api/status`);
-  console.log(`   curl http://localhost:${PORT}/api/photos`);
-  console.log(`   curl http://localhost:${PORT}/api/trash`);
-  console.log(`   curl -X DELETE http://localhost:${PORT}/api/photos`);
-  console.log();
-  console.log('✨ Frontend startet auf: http://localhost:5173');
-  console.log('✨ Admin Panel: http://localhost:5173/admin');
-  console.log('✨ Papierkorb: http://localhost:5173/trash');
-  console.log();
 });
