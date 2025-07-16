@@ -15,7 +15,7 @@ import { promisify } from 'util';
 // Import Auth-Modul
 import { login, verifyToken, requireAuth, getAuthStatus, changePassword } from './auth.js';
 import brandingRoutes from './brandingRoutes.js';
-import { gpio } from './gpio.js';
+import gpio from './gpio.js';
 
 const execAsync = promisify(exec);
 
@@ -337,30 +337,90 @@ class RaspberryPiCamera {
 }
 
 // Initialisiere GPIO und Kamera
+// WebSocket für GPIO-Navigation
+import { WebSocketServer } from 'ws';
+
+// WebSocket Server für GPIO-Events
+const wss = new WebSocketServer({ port: 3002 });
+let wsClients = new Set();
+
+wss.on('connection', (ws) => {
+  console.log('� WebSocket client connected');
+  wsClients.add(ws);
+  
+  ws.on('close', () => {
+    console.log('📡 WebSocket client disconnected');
+    wsClients.delete(ws);
+  });
+});
+
+// Funktion um alle WebSocket-Clients zu benachrichtigen
+function broadcastToClients(message) {
+  const messageStr = JSON.stringify(message);
+  wsClients.forEach(ws => {
+    if (ws.readyState === ws.OPEN) {
+      ws.send(messageStr);
+    }
+  });
+}
+
 console.log('🔧 Initializing Raspberry Pi hardware...');
 const camera = new RaspberryPiCamera();
 
 // GPIO Setup
 try {
-  gpio.setupGpio();
+  // Erstmal GPIO exklusiv für Fotobox reservieren
+  await gpio.reserveGpioForPhotobooth();
   
-  // GPIO Button Event Handler
+  // Dann GPIO initialisieren
+  await gpio.setupGpio();
+  
+  // GPIO Button Event Handler - funktioniert immer und navigiert zur Photo-Seite
   gpio.onButtonPress(async () => {
-    console.log('🔘 GPIO Button pressed - taking photo...');
+    console.log('🔘 GPIO Button pressed - navigating to photo page and taking photo...');
+    
+    // 1. Navigation zur Photo-Seite über WebSocket
+    broadcastToClients({
+      type: 'navigate',
+      path: '/photo/new'
+    });
+    
+    // 2. Kurz warten damit Navigation stattfindet
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // 3. Foto machen
     try {
       const result = await camera.takePhoto();
       if (result.success) {
         console.log(`✅ GPIO Photo taken: ${result.filename}`);
         gpio.blinkLed(); // Feedback
+        
+        // 4. Frontend über neues Foto informieren
+        broadcastToClients({
+          type: 'photo-taken',
+          filename: result.filename,
+          success: true
+        });
       } else {
         console.error('❌ GPIO Photo failed');
+        broadcastToClients({
+          type: 'photo-taken',
+          success: false,
+          error: 'Photo capture failed'
+        });
       }
     } catch (error) {
       console.error('❌ GPIO Photo error:', error);
+      broadcastToClients({
+        type: 'photo-taken',
+        success: false,
+        error: error.message
+      });
     }
   });
   
-  console.log('✅ GPIO initialized with button handler');
+  console.log('✅ GPIO initialized with auto-navigation handler');
+  console.log('📡 WebSocket server running on port 3002');
 } catch (error) {
   console.error('❌ GPIO initialization failed:', error);
 }

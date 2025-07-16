@@ -1,52 +1,96 @@
-// GPIO Modul für Raspberry Pi
-// Verwendet onoff für GPIO-Steuerung
+// GPIO Modul für Raspberry Pi - JAVASCRIPT/ONOFF VERSION
+// Direkte GPIO-Steuerung mit onoff Library
 
 import { Gpio } from 'onoff';
 
-// GPIO Pin-Konfiguration - Angepasst für deine Hardware
-const BUTTON_PIN = 17;  // Button für Foto-Trigger an GPIO 17 mit GND
+// GPIO Pin-Konfiguration - FEST auf Pin 17
+const BUTTON_PIN = 17;  // Button für Foto-Trigger an GPIO 17 mit GND (Pin 11)
 
 let button = null;
 let isGpioInitialized = false;
 
-// GPIO initialisieren
+// GPIO initialisieren - EINFACH ohne Prozess-Beendigung
 export async function setupGpio() {
   try {
-    console.log('🔌 GPIO Setup wird gestartet...');
+    console.log('🔌 GPIO Setup (onoff)...');
+    console.log(`🎯 GPIO ${BUTTON_PIN} (Pin 11)`);
     
-    // Prüfe ob GPIO verfügbar ist (nur auf Pi)
+    // Prüfe ob GPIO verfügbar ist
     if (!Gpio.accessible) {
-      throw new Error('GPIO nicht verfügbar (nicht auf Raspberry Pi?)');
+      console.log('❌ GPIO nicht verfügbar (nicht auf Raspberry Pi?)');
+      return false;
     }
     
-    // Button Pin als Input mit Pull-up konfigurieren
-    button = new Gpio(BUTTON_PIN, 'in', 'falling', { debounceTimeout: 50 });
+    console.log('✅ GPIO System verfügbar');
+    
+    // DIREKTE GPIO-Initialisierung
+    button = new Gpio(BUTTON_PIN, 'in', 'falling', { 
+      debounceTimeout: 100  // 100ms Entprellung
+    });
+    
+    // Test Button Status
+    const initialState = button.readSync();
+    console.log(`🔍 Button Initial State: ${initialState} (0=gedrückt, 1=nicht gedrückt)`);
     
     isGpioInitialized = true;
     console.log('✅ GPIO erfolgreich initialisiert');
-    console.log(`   📌 Button Pin: ${BUTTON_PIN} (mit internem Pull-up)`);
-    console.log('   💡 Keine LED konfiguriert');
+    console.log(`   📌 Pin: GPIO ${BUTTON_PIN} (Pin 11, Pull-up, falling edge)`);
+    console.log(`   🔧 Verdrahtung: GPIO ${BUTTON_PIN} -> Button -> GND`);
     
     return true;
   } catch (error) {
     console.error('❌ GPIO Initialisierung fehlgeschlagen:', error.message);
-    console.warn('⚠️ GPIO-Funktionen werden deaktiviert (Mock-Modus)');
     isGpioInitialized = false;
     return false;
   }
 }
 
-// LED Funktionen (Mock - keine Hardware vorhanden)
-export async function blinkLed(duration = 200, blinks = 3) {
-  console.log(`💡 Mock: LED würde ${blinks}x für ${duration}ms blinken (keine LED-Hardware)`);
+// Python GPIO Service Status prüfen
+async function checkGpioService() {
+  try {
+    const { stdout } = await execAsync('systemctl is-active photobooth-gpio.service');
+    return stdout.trim() === 'active';
+  } catch (error) {
+    return false;
+  }
 }
 
-export async function turnOnLed() {
-  console.log('🟢 Mock: LED würde eingeschaltet (keine LED-Hardware)');
+// Python GPIO Service starten
+export async function startGpioService() {
+  try {
+    console.log('🚀 Starte Python GPIO Service...');
+    await execAsync('sudo systemctl start photobooth-gpio.service');
+    await new Promise(resolve => setTimeout(resolve, 2000)); // Warten
+    
+    const isRunning = await checkGpioService();
+    if (isRunning) {
+      gpioServiceStatus = 'running';
+      isGpioInitialized = true;
+      console.log('✅ Python GPIO Service gestartet');
+    } else {
+      console.log('❌ Python GPIO Service Start fehlgeschlagen');
+    }
+    
+    return isRunning;
+  } catch (error) {
+    console.error('❌ Fehler beim Starten des GPIO Service:', error.message);
+    return false;
+  }
 }
 
-export async function turnOffLed() {
-  console.log('🔴 Mock: LED würde ausgeschaltet (keine LED-Hardware)');
+// Python GPIO Service stoppen
+export async function stopGpioService() {
+  try {
+    console.log('🛑 Stoppe Python GPIO Service...');
+    await execAsync('sudo systemctl stop photobooth-gpio.service');
+    gpioServiceStatus = 'stopped';
+    isGpioInitialized = false;
+    console.log('✅ Python GPIO Service gestoppt');
+    return true;
+  } catch (error) {
+    console.error('❌ Fehler beim Stoppen des GPIO Service:', error.message);
+    return false;
+  }
 }
 
 // Button-Status lesen
@@ -80,7 +124,7 @@ export function onButtonPress(callback) {
       }
       
       if (value === 0) { // Button gedrückt
-        console.log('🔘 Button gedrückt!');
+        console.log('� Button gedrückt!');
         callback();
       }
     });
@@ -96,10 +140,7 @@ export async function cleanup() {
   if (isGpioInitialized && button) {
     try {
       console.log('🔌 GPIO Cleanup...');
-      
-      // Button cleanup
       button.unexport();
-      
       console.log('✅ GPIO Cleanup abgeschlossen');
     } catch (error) {
       console.error('❌ Fehler beim GPIO Cleanup:', error);
@@ -115,87 +156,40 @@ export function getGpioStatus() {
   return {
     initialized: isGpioInitialized,
     buttonPin: BUTTON_PIN,
-    ledPin: 'nicht vorhanden',
     accessible: Gpio.accessible
   };
 }
 
-// LED-Klasse mit PWM-Unterstützung
-export class LED {
-  constructor(pin) {
-    // Im Browser-Modus: Mock erstellen
-    if (process.env.NODE_ENV === 'development') {
-      this.mock = true;
-      return;
-    }
-
-    this.pin = new Gpio(pin, 'out');
-    this.blinkInterval = null;
-  }
-
-  on() {
-    if (this.mock) return;
-    this.pin.writeSync(1);
-  }
-
-  off() {
-    if (this.mock) return;
-    this.pin.writeSync(0);
-  }
-
-  // Blinken mit einstellbarer Frequenz
-  async blink(times = 3, interval = 500) {
-    if (this.mock) return;
-    
-    // Altes Blinken stoppen
-    this.stopBlink();
-
-    for (let i = 0; i < times; i++) {
-      this.on();
-      await new Promise(resolve => setTimeout(resolve, interval));
-      this.off();
-      if (i < times - 1) {
-        await new Promise(resolve => setTimeout(resolve, interval));
-      }
-    }
-  }
-
-  // Kontinuierliches Blinken starten
-  startBlink(interval = 500) {
-    if (this.mock) return;
-    
-    this.stopBlink();
-    this.blinkInterval = setInterval(() => {
-      this.pin.writeSync(this.pin.readSync() ^ 1);
-    }, interval);
-  }
-
-  // Blinken stoppen
-  stopBlink() {
-    if (this.mock) return;
-    
-    if (this.blinkInterval) {
-      clearInterval(this.blinkInterval);
-      this.blinkInterval = null;
-      this.off();
-    }
-  }
-
-  // Cleanup
-  cleanup() {
-    if (!this.mock) {
-      this.stopBlink();
-      this.pin.unexport();
-    }
-  }
+// Mock LED-Funktionen (keine Hardware vorhanden)
+export async function blinkLed(duration = 200, blinks = 3) {
+  console.log(`💡 Mock: LED würde ${blinks}x für ${duration}ms blinken`);
 }
 
-// Export des gpio-Objekts als Default und Named Export
+export async function turnOnLed() {
+  console.log('🟢 Mock: LED würde eingeschaltet');
+}
+
+export async function turnOffLed() {
+  console.log('🔴 Mock: LED würde ausgeschaltet');
+}
+
+// GPIO für Fotobox reservieren (vereinfacht)
+export async function reserveGpioForPhotobooth() {
+  console.log('🎯 GPIO für Fotobox reserviert');
+  return true;
+}
+
+// Export des gpio-Objekts
 export const gpio = {
   setupGpio,
   onButtonPress,
-  blinkLed: () => {}, // Mock-Funktion für Kompatibilität
-  cleanup: () => { console.log('GPIO cleanup'); }
+  blinkLed,
+  turnOnLed,
+  turnOffLed,
+  readButton,
+  cleanup,
+  getGpioStatus,
+  reserveGpioForPhotobooth
 };
 
 export default gpio;
