@@ -189,3 +189,13 @@ export class LED {
     }
   }
 }
+
+// Export des gpio-Objekts als Default und Named Export
+export const gpio = {
+  setupGpio,
+  onButtonPress,
+  blinkLed: () => {}, // Mock-Funktion für Kompatibilität
+  cleanup: () => { console.log('GPIO cleanup'); }
+};
+
+export default gpio;

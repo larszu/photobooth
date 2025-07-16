@@ -148,6 +148,48 @@ export function getAuthStatus(req) {
   };
 }
 
+// Passwort ändern
+export async function changePassword(username, oldPassword, newPassword) {
+  try {
+    const users = loadUsers();
+    const user = users[username];
+    
+    if (!user) {
+      return {
+        success: false,
+        message: 'Benutzer nicht gefunden'
+      };
+    }
+    
+    // Altes Passwort überprüfen
+    const isValidOldPassword = await bcrypt.compare(oldPassword, user.password);
+    if (!isValidOldPassword) {
+      return {
+        success: false,
+        message: 'Altes Passwort ist falsch'
+      };
+    }
+    
+    // Neues Passwort hashen und speichern
+    const hashedNewPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    users[username].password = hashedNewPassword;
+    users[username].passwordChanged = new Date().toISOString();
+    
+    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+    
+    return {
+      success: true,
+      message: 'Passwort erfolgreich geändert'
+    };
+  } catch (error) {
+    console.error('❌ Fehler beim Ändern des Passworts:', error);
+    return {
+      success: false,
+      message: 'Interner Serverfehler beim Ändern des Passworts'
+    };
+  }
+}
+
 // Initialization
 initializeUsers();
 
