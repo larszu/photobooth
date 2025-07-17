@@ -77,6 +77,12 @@
             height: 250px;
             object-fit: cover;
             display: block;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .photo-card img:hover {
+            transform: scale(1.02);
         }
 
         .photo-info {
@@ -85,8 +91,14 @@
 
         .photo-filename {
             font-weight: 600;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
             font-size: 0.9em;
+        }
+
+        .photo-metadata {
+            font-size: 0.75em;
+            opacity: 0.8;
+            margin-bottom: 10px;
         }
 
         .photo-actions {
@@ -191,6 +203,123 @@
                 flex-direction: column;
             }
         }
+
+        /* Image Modal Styles */
+        .image-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            position: relative;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            max-width: 90vw;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.1em;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5em;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .modal-body {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .modal-body img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 10px;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            padding: 15px 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            justify-content: center;
+        }
+
+        /* Notification Styles */
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(76, 175, 80, 0.9);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+            z-index: 1001;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
     </style>
 </head>
 <body>
@@ -265,28 +394,45 @@
 
         async function createPhotoCard(photoId, gallery) {
             try {
-                // Extract folder and filename from photoId
+                // Parse photoId to extract folder and filename
                 const parts = photoId.split('/');
                 const filename = parts[parts.length - 1];
-                const folder = parts.length > 1 ? parts[0] : '';
+                const folder = parts.length > 1 ? parts.slice(0, -1).join('/') : '';
 
                 // Create photo card
                 const card = document.createElement('div');
                 card.className = 'photo-card';
                 
-                const photoUrl = `/api/photos/${encodeURIComponent(folder)}/${encodeURIComponent(filename)}`;
-                const downloadUrl = `/api/photo/download/${encodeURIComponent(photoId)}`;
+                // Use thumbnail for fast loading
+                const thumbnailUrl = `/api/photos/${encodeURIComponent(filename)}/thumbnail?size=300`;
+                // Use download endpoint for proper file downloads
+                const downloadUrl = folder ? 
+                    `/api/photos/${encodeURIComponent(folder)}/${encodeURIComponent(filename)}/download` :
+                    `/api/photos/${encodeURIComponent(filename)}/download`;
+                // Use static endpoint for viewing (direct file access)
+                const viewUrl = folder ? 
+                    `/photos/${encodeURIComponent(folder)}/${encodeURIComponent(filename)}` :
+                    `/photos/${encodeURIComponent(filename)}`;
+                
+                // Ensure filename has .jpg extension for display, but don't add if already present
+                let displayFilename = filename;
+                if (!displayFilename.toLowerCase().endsWith('.jpg') && !displayFilename.toLowerCase().endsWith('.jpeg')) {
+                    const nameWithoutExt = displayFilename.replace(/\.[^/.]+$/, "");
+                    displayFilename = `${nameWithoutExt}.jpg`;
+                }
                 
                 card.innerHTML = `
-                    <img src="${photoUrl}" alt="${filename}" loading="lazy" 
-                         onerror="this.src='/api/photos/thumbnail-error.jpg'">
+                    <img src="${thumbnailUrl}" alt="${displayFilename}" loading="lazy" 
+                         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDMwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjZjVmNWY1Ii8+CjxwYXRoIGQ9Ik0xNTAgMTAwTDEyNSA3NUgxNzVMMTUwIDEwMFoiIGZpbGw9IiNjY2MiLz4KPHN2Zz4K'"
+                         onclick="viewFullImage('${viewUrl}', '${filename}')">
                     <div class="photo-info">
                         <div class="photo-filename">${filename}</div>
+                        <div class="photo-metadata" id="metadata-${filename}">Lädt...</div>
                         <div class="photo-actions">
-                            <a href="${downloadUrl}" class="btn btn-primary" download>
+                            <a href="${downloadUrl}" class="btn btn-primary" download="${displayFilename}">
                                 💾 Herunterladen
                             </a>
-                            <button class="btn btn-secondary" onclick="sharePhoto('${photoId}')">
+                            <button class="btn btn-secondary" onclick="sharePhoto('${photoId}', '${filename}')">
                                 📤 Teilen
                             </button>
                         </div>
@@ -294,45 +440,181 @@
                 `;
 
                 gallery.appendChild(card);
+                
+                // Load metadata asynchronously
+                loadPhotoMetadata(filename);
+                
             } catch (error) {
                 console.error('Error creating photo card for:', photoId, error);
             }
         }
 
-        function sharePhoto(photoId) {
-            const photoUrl = `${window.location.origin}/api/photos/${encodeURIComponent(photoId)}`;
+        async function loadPhotoMetadata(filename) {
+            try {
+                const response = await fetch(`/api/photos`);
+                const data = await response.json();
+                
+                // Find photo in the data structure
+                let photoInfo = null;
+                for (const folder of data.folders) {
+                    const photo = folder.photos.find(p => p.filename === filename);
+                    if (photo) {
+                        photoInfo = photo;
+                        break;
+                    }
+                }
+                
+                if (photoInfo) {
+                    const metadataElement = document.getElementById(`metadata-${filename}`);
+                    if (metadataElement) {
+                        const fileSize = (photoInfo.size / (1024 * 1024)).toFixed(1); // MB
+                        const date = new Date(photoInfo.created).toLocaleDateString('de-DE', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                        metadataElement.innerHTML = `📅 ${date} • 📊 ${fileSize} MB`;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading metadata for:', filename, error);
+                const metadataElement = document.getElementById(`metadata-${filename}`);
+                if (metadataElement) {
+                    metadataElement.innerHTML = '📷 Foto';
+                }
+            }
+        }
+
+        function viewFullImage(imageUrl, filename) {
+            // Create modal overlay
+            const modal = document.createElement('div');
+            modal.className = 'image-modal';
+            modal.innerHTML = `
+                <div class="modal-backdrop" onclick="closeModal()"></div>
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>${filename}</h3>
+                        <button class="modal-close" onclick="closeModal()">✕</button>
+                    </div>
+                    <div class="modal-body">
+                        <img src="${imageUrl}" alt="${filename}" loading="lazy">
+                    </div>
+                    <div class="modal-footer">
+                        <a href="${imageUrl}" class="btn btn-primary" download="${filename}">
+                            💾 Herunterladen
+                        </a>
+                        <button class="btn btn-secondary" onclick="closeModal()">
+                            ❌ Schließen
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function closeModal() {
+            const modal = document.querySelector('.image-modal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        function sharePhoto(photoId, filename) {
+            const photoUrl = `${window.location.origin}/api/photos/${encodeURIComponent(filename)}`;
             
             if (navigator.share) {
                 navigator.share({
-                    title: 'Photobooth Foto',
-                    text: 'Schau dir dieses Foto an!',
+                    title: `Photobooth Foto: ${filename}`,
+                    text: 'Schau dir dieses Foto von der Photobooth an!',
                     url: photoUrl
                 }).catch(console.error);
             } else {
                 // Fallback: Copy to clipboard
                 navigator.clipboard.writeText(photoUrl).then(() => {
-                    alert('📋 Link wurde in die Zwischenablage kopiert!');
-                }).catch(console.error);
+                    showNotification('📋 Link wurde in die Zwischenablage kopiert!');
+                }).catch(() => {
+                    // Fallback for older browsers
+                    const textArea = document.createElement('textarea');
+                    textArea.value = photoUrl;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    showNotification('📋 Link wurde in die Zwischenablage kopiert!');
+                });
             }
         }
 
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
         function downloadAllPhotos() {
+            if (photoList.length === 0) {
+                showNotification('❌ Keine Fotos zum Herunterladen verfügbar');
+                return;
+            }
+
+            showNotification(`📦 Starte Download von ${photoList.length} Fotos...`);
+
             // Download each photo individually (browsers don't support bulk downloads)
             photoList.forEach((photoId, index) => {
                 setTimeout(() => {
-                    const downloadUrl = `/api/photo/download/${encodeURIComponent(photoId)}`;
-                    const link = document.createElement('a');
-                    link.href = downloadUrl;
-                    link.download = '';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                }, index * 500); // Stagger downloads to avoid browser limits
+                    try {
+                        const parts = photoId.split('/');
+                        const filename = parts[parts.length - 1];
+                        const folder = parts.length > 1 ? parts.slice(0, -1).join('/') : '';
+                        
+                        // Ensure filename has .jpg extension for download, but don't add if already present
+                        let downloadFilename = filename;
+                        if (!downloadFilename.toLowerCase().endsWith('.jpg') && !downloadFilename.toLowerCase().endsWith('.jpeg')) {
+                            const nameWithoutExt = downloadFilename.replace(/\.[^/.]+$/, "");
+                            downloadFilename = `${nameWithoutExt}.jpg`;
+                        }
+                        
+                        const downloadUrl = folder ? 
+                            `/api/photos/${encodeURIComponent(folder)}/${encodeURIComponent(filename)}/download` :
+                            `/api/photos/${encodeURIComponent(filename)}/download`;
+                        
+                        const link = document.createElement('a');
+                        link.href = downloadUrl;
+                        link.download = downloadFilename;
+                        link.style.display = 'none';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        
+                        // Show progress
+                        if (index === photoList.length - 1) {
+                            setTimeout(() => {
+                                showNotification('✅ Alle Fotos werden heruntergeladen!');
+                            }, 500);
+                        }
+                    } catch (error) {
+                        console.error('Error downloading photo:', photoId, error);
+                    }
+                }, index * 800); // Stagger downloads to avoid browser limits
             });
         }
 
         // Load photos when page loads
         document.addEventListener('DOMContentLoaded', loadPhotos);
+
+        // Keyboard navigation for modal
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
     </script>
 </body>
 </html>

@@ -5,8 +5,8 @@ Wants=network.target
 
 [Service]
 Type=simple
-User=pi
-WorkingDirectory=/home/pi/photobooth/backend
+User=zumpe
+WorkingDirectory=/home/zumpe/photobooth/backend
 ExecStart=/usr/bin/node server-raspberry.js
 Restart=always
 RestartSec=10

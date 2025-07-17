@@ -203,6 +203,93 @@ app.use('/photos', express.static(PHOTOS_DIR));
 // Branding-Dateien statisch bereitstellen
 app.use('/branding', express.static(BRANDING_DIR));
 
+// Download-Endpunkt für Fotos mit korrekten Headern
+app.get('/api/photos/:folder/:filename/download', (req, res) => {
+  try {
+    const folder = decodeURIComponent(req.params.folder);
+    const filename = decodeURIComponent(req.params.filename);
+    
+    console.log(`📥 Download request: ${folder}/${filename}`);
+    
+    const photoPath = path.join(PHOTOS_DIR, folder, filename);
+    
+    // Prüfe ob Datei existiert
+    if (!fs.existsSync(photoPath)) {
+      return res.status(404).json({
+        success: false,
+        message: 'Foto nicht gefunden'
+      });
+    }
+    
+    // Stelle sicher, dass Dateiname .jpg Endung hat
+    let downloadFilename = filename;
+    if (!downloadFilename.toLowerCase().endsWith('.jpg')) {
+      const nameWithoutExt = path.parse(downloadFilename).name;
+      downloadFilename = `${nameWithoutExt}.jpg`;
+    }
+    
+    // Setze Download-Header
+    res.setHeader('Content-Disposition', `attachment; filename="${downloadFilename}"`);
+    res.setHeader('Content-Type', 'image/jpeg');
+    
+    // Sende Datei
+    res.sendFile(photoPath);
+    
+  } catch (error) {
+    console.error('❌ Error in photo download:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Fehler beim Herunterladen des Fotos'
+    });
+  }
+});
+
+// Download-Endpunkt für Fotos ohne Folder mit korrekten Headern
+app.get('/api/photos/:filename/download', (req, res) => {
+  try {
+    const filename = decodeURIComponent(req.params.filename);
+    
+    console.log(`📥 Download request: ${filename}`);
+    
+    // Finde das Foto in allen Ordnern
+    const allPhotos = getAllPhotosFromFolders();
+    const photo = allPhotos.find(p => 
+      p.filename === filename || 
+      p.filename === path.basename(filename)
+    );
+    
+    if (!photo) {
+      return res.status(404).json({
+        success: false,
+        message: 'Foto nicht gefunden'
+      });
+    }
+    
+    const photoPath = path.join(PHOTOS_DIR, photo.folder, photo.filename);
+    
+    // Stelle sicher, dass Dateiname .jpg Endung hat
+    let downloadFilename = photo.filename;
+    if (!downloadFilename.toLowerCase().endsWith('.jpg')) {
+      const nameWithoutExt = path.parse(downloadFilename).name;
+      downloadFilename = `${nameWithoutExt}.jpg`;
+    }
+    
+    // Setze Download-Header
+    res.setHeader('Content-Disposition', `attachment; filename="${downloadFilename}"`);
+    res.setHeader('Content-Type', 'image/jpeg');
+    
+    // Sende Datei
+    res.sendFile(photoPath);
+    
+  } catch (error) {
+    console.error('❌ Error in photo download:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Fehler beim Herunterladen des Fotos'
+    });
+  }
+});
+
 // Frontend HTML-Seite servieren
 app.get('/', (req, res) => {
   try {
