@@ -106,6 +106,26 @@ photobooth/
 
 ## 🚀 Installation
 
+### Automatische Installation (Empfohlen)
+
+```bash
+# Repository klonen
+cd /home/pi
+git clone https://github.com/larszu/photobooth.git
+cd photobooth
+
+# Automatisches Setup ausführen
+chmod +x setup-pi.sh
+./setup-pi.sh
+
+# Raspberry Pi neu starten
+sudo reboot
+```
+
+**Nach dem Neustart:** Das System startet automatisch im Kiosk-Modus! 🎉
+
+### Manuelle Installation (für Entwickler)
+
 ### 1. Raspberry Pi OS Setup
 
 ```bash
@@ -140,6 +160,13 @@ sudo apt install libvips-dev -y
 
 # Build-Tools
 sudo apt install build-essential python3-dev -y
+
+# Desktop-Umgebung und Browser für Kiosk-Modus
+sudo apt install chromium-browser unclutter -y
+
+# Auto-Login konfigurieren
+sudo systemctl set-default graphical.target
+sudo systemctl enable lightdm
 ```
 
 ### 3. Projekt klonen und einrichten
@@ -162,19 +189,22 @@ npm install
 npm run build
 ```
 
-### 4. Systemd Service einrichten
+### 4. Auto-Start Services einrichten
+
+#### Backend Service
 
 ```bash
 # Service-Datei erstellen
-sudo nano /etc/systemd/system/photobooth.service
+sudo nano /etc/systemd/system/photobooth-backend.service
 ```
 
-Inhalt der Service-Datei:
+Inhalt der Backend Service-Datei:
 
 ```ini
 [Unit]
 Description=Photobooth Backend Service
 After=network.target
+Wants=network.target
 
 [Service]
 Type=simple
@@ -193,16 +223,97 @@ DeviceAllow=/dev/gpiochip0 rw
 WantedBy=multi-user.target
 ```
 
-Service aktivieren:
+#### Frontend Service (Kiosk-Modus)
 
 ```bash
-# Service laden und starten
+# Frontend Service-Datei erstellen
+sudo nano /etc/systemd/system/photobooth-frontend.service
+```
+
+Inhalt der Frontend Service-Datei:
+
+```ini
+[Unit]
+Description=Photobooth Frontend Kiosk
+After=graphical-session.target
+Wants=graphical-session.target
+After=photobooth-backend.service
+
+[Service]
+Type=simple
+User=pi
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/pi/.Xauthority
+WorkingDirectory=/home/pi/photobooth
+ExecStartPre=/bin/sleep 10
+ExecStart=/home/pi/photobooth/start-kiosk.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target
+```
+
+#### Auto-Start Script erstellen
+
+```bash
+# Kiosk-Start-Script erstellen
+nano /home/pi/photobooth/start-kiosk.sh
+```
+
+Inhalt des Start-Scripts:
+
+```bash
+#!/bin/bash
+
+# Warte bis X11 verfügbar ist
+while ! xset q &>/dev/null; do
+    echo "Waiting for X11..."
+    sleep 2
+done
+
+# Bildschirmschoner deaktivieren
+xset s off
+xset -dpms
+xset s noblank
+
+# Cursor verstecken
+unclutter -idle 0.1 -root &
+
+# Frontend im Kiosk-Modus starten
+chromium-browser \
+    --no-sandbox \
+    --disable-infobars \
+    --disable-restore-session-state \
+    --disable-session-crashed-bubble \
+    --disable-features=TranslateUI \
+    --kiosk \
+    --app=http://localhost:5173 \
+    --start-fullscreen \
+    --check-for-update-interval=31536000
+```
+
+Script ausführbar machen:
+
+```bash
+chmod +x /home/pi/photobooth/start-kiosk.sh
+```
+
+Services aktivieren:
+
+```bash
+# Services laden und aktivieren
 sudo systemctl daemon-reload
-sudo systemctl enable photobooth
-sudo systemctl start photobooth
+sudo systemctl enable photobooth-backend
+sudo systemctl enable photobooth-frontend
+
+# Services starten
+sudo systemctl start photobooth-backend
+sudo systemctl start photobooth-frontend
 
 # Status prüfen
-sudo systemctl status photobooth
+sudo systemctl status photobooth-backend
+sudo systemctl status photobooth-frontend
 ```
 
 ### 5. WLAN-Hotspot konfigurieren
@@ -272,13 +383,81 @@ sudo systemctl enable dnsmasq
 sudo reboot
 ```
 
+### 6. Auto-Login konfigurieren
+
+```bash
+# Auto-Login für Desktop aktivieren
+sudo raspi-config
+# Navigation: 1 System Options → S5 Boot / Auto Login → B4 Desktop Autologin
+
+# Oder manuell konfigurieren:
+sudo nano /etc/lightdm/lightdm.conf
+```
+
+LightDM Konfiguration:
+
+```ini
+[Seat:*]
+autologin-user=pi
+autologin-user-timeout=0
+```
+
+### 7. Desktop Auto-Start konfigurieren
+
+```bash
+# Desktop Auto-Start Verzeichnis erstellen
+mkdir -p /home/pi/.config/autostart
+
+# Desktop-Eintrag für Photobooth erstellen
+nano /home/pi/.config/autostart/photobooth.desktop
+```
+
+Desktop-Eintrag Inhalt:
+
+```ini
+[Desktop Entry]
+Type=Application
+Name=Photobooth Kiosk
+Exec=/home/pi/photobooth/start-kiosk.sh
+Hidden=false
+X-GNOME-Autostart-enabled=true
+```
+
 ## 🎮 Bedienung
 
-### Frontend URLs
+### Auto-Start Verhalten
 
-- **Hauptseite**: `http://192.168.8.1:5173`
+Nach einem Neustart des Raspberry Pi:
+
+1. **Automatischer Login** als Benutzer `pi`
+2. **Backend startet automatisch** auf Port 3001
+3. **Frontend öffnet im Kiosk-Modus** (Vollbild, kein Browser-UI)
+4. **Cursor wird automatisch versteckt** bei Inaktivität
+5. **Bildschirmschoner deaktiviert** für 24/7 Betrieb
+
+### URLs und Remote-Zugriff
+
+- **Kiosk-Modus** (lokaler Bildschirm): Automatisch nach Boot
+- **Remote-Zugriff**: `http://192.168.8.1:5173`
 - **Admin-Panel**: `http://192.168.8.1:5173/admin`
 - **Papierkorb**: `http://192.168.8.1:5173/trash`
+- **Backend-API**: `http://192.168.8.1:3001`
+
+### Service-Kontrolle
+
+```bash
+# Services stoppen/starten
+sudo systemctl stop photobooth-backend
+sudo systemctl stop photobooth-frontend
+sudo systemctl start photobooth-backend
+sudo systemctl start photobooth-frontend
+
+# Kiosk-Modus manuell beenden
+pkill chromium-browser
+
+# Kiosk-Modus manuell starten
+/home/pi/photobooth/start-kiosk.sh &
+```
 
 ### Admin-Zugangsdaten
 

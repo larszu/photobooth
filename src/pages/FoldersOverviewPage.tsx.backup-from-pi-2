@@ -305,16 +305,37 @@ const FoldersOverviewPage: React.FC = () => {
               <>
                 <Box sx={{ 
                   display: 'flex', 
-                  justifyContent: 'flex-start', // Links ausrichten statt space-between
+                  justifyContent: 'space-between', 
                   alignItems: 'center',
-                  mb: 3,
-                  gap: 3 // Direkter Abstand zwischen Text und Buttons
+                  mb: 3 
                 }}>
                   <Typography variant="h5" sx={{ fontWeight: 600 }}>
                     Fotos nach Tagen
                   </Typography>
                   
                   <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                    <Button
+                      onClick={handleViewAllPhotos}
+                      variant="outlined"
+                      size="medium"
+                      sx={{ 
+                        px: { xs: 1.5, md: 2 },
+                        py: { xs: 0.5, md: 1 },
+                        border: '1px solid',
+                        borderColor: 'primary.main',
+                        color: 'primary.main',
+                        '&:hover': {
+                          backgroundColor: 'primary.light',
+                          color: 'white',
+                        },
+                      }}
+                    >
+                      <PhotoLibraryIcon fontSize="small" sx={{ mr: 0.5 }} />
+                      <Typography variant="body2">
+                        Alle Fotos anzeigen
+                      </Typography>
+                    </Button>
+                    
                     <ToggleButtonGroup
                       value={sortOrder}
                       exclusive
@@ -355,32 +376,8 @@ const FoldersOverviewPage: React.FC = () => {
                         </Typography>
                       </ToggleButton>
                     </ToggleButtonGroup>
-                    
-                    <Button
-                      onClick={handleViewAllPhotos}
-                      variant="outlined"
-                      size="medium"
-                      sx={{ 
-                        px: { xs: 1.5, md: 2 },
-                        py: { xs: 0.5, md: 1 },
-                        border: '1px solid',
-                        borderColor: 'primary.main',
-                        color: 'primary.main',
-                        '&:hover': {
-                          backgroundColor: 'primary.light',
-                          color: 'white',
-                        },
-                      }}
-                    >
-                      <PhotoLibraryIcon fontSize="small" sx={{ mr: 0.5 }} />
-                      <Typography variant="body2">
-                        Alle Fotos anzeigen
-                      </Typography>
-                    </Button>
                   </Box>
-                </Box>
-                
-                <Box 
+                </Box>                <Box 
                   sx={{ 
                     display: 'grid',
                     gridTemplateColumns: {

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Box, 
   Typography, 
+  AppBar, 
+  Toolbar, 
   IconButton, 
   Button, 
   Card, 
@@ -220,102 +222,51 @@ const TrashPage: React.FC = () => {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50' }}>
-      {/* Floating Navigation Buttons */}
-      <Box
-        sx={{
-          position: 'fixed',
-          top: { xs: 10, sm: 16 },
-          left: { xs: 10, sm: 16 },
-          zIndex: 1000,
-        }}
-      >
-        <IconButton
-          onClick={() => navigate(-1)}
-          sx={{
-            bgcolor: 'rgba(255, 255, 255, 0.9)',
-            backdropFilter: 'blur(10px)',
-            boxShadow: 2,
-            '&:hover': {
-              bgcolor: 'rgba(255, 255, 255, 1)',
-            },
-            width: { xs: 48, sm: 56 },
-            height: { xs: 48, sm: 56 },
-          }}
-        >
-          <ArrowBackIcon />
-        </IconButton>
-      </Box>
-
-      <Box
-        sx={{
-          position: 'fixed',
-          top: { xs: 10, sm: 16 },
-          right: { xs: 10, sm: 16 },
-          zIndex: 1000,
-          display: 'flex',
-          gap: 1,
-        }}
-      >
-        {/* Admin Button */}
-        <IconButton
-          onClick={() => navigate('/admin', { state: { fromInternal: true } })}
-          title="Admin-Bereich"
-          sx={{
-            bgcolor: 'rgba(255, 255, 255, 0.9)',
-            backdropFilter: 'blur(10px)',
-            boxShadow: 2,
-            '&:hover': {
-              bgcolor: 'rgba(255, 255, 255, 1)',
-            },
-            width: { xs: 48, sm: 56 },
-            height: { xs: 48, sm: 56 },
-          }}
-        >
-          <AdminPanelSettingsIcon />
-        </IconButton>
-
-        {/* Multi-Select Toggle */}
-        {photos.length > 0 && (
-          <Button
-            onClick={() => setSelectionMode(!selectionMode)}
-            variant="contained"
-            sx={{
-              bgcolor: 'rgba(255, 255, 255, 0.9)',
-              backdropFilter: 'blur(10px)',
-              boxShadow: 2,
-              color: 'text.primary',
-              '&:hover': {
-                bgcolor: 'rgba(255, 255, 255, 1)',
-              },
-              px: { xs: 2, sm: 3 },
-              py: { xs: 1.5, sm: 2 },
-              fontSize: { xs: '0.8rem', sm: '0.9rem' },
-              fontWeight: 500,
-              textTransform: 'none',
-              minWidth: 'auto',
-              height: { xs: 48, sm: 56 },
-            }}
+      {/* App Bar */}
+      <AppBar position="static">
+        <Toolbar>
+          <IconButton 
+            edge="start" 
+            color="inherit" 
+            onClick={() => navigate(-1)}
+            sx={{ mr: 2 }}
           >
-            {selectionMode ? 'Abbrechen' : 'Auswählen'}
-          </Button>
-        )}
-      </Box>
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            Papierkorb ({photos.length} Fotos)
+          </Typography>
+          
+          {/* Admin Button */}
+          <IconButton 
+            color="inherit"
+            onClick={() => navigate('/admin', { state: { fromInternal: true } })}
+            sx={{ mr: 1 }}
+            title="Admin-Bereich"
+          >
+            <AdminPanelSettingsIcon />
+          </IconButton>
+          
+          {/* Multi-Select Toggle */}
+          {photos.length > 0 && (
+            <Button 
+              color="inherit"
+              onClick={() => setSelectionMode(!selectionMode)}
+              sx={{
+                p: { xs: 1, sm: 1.5 },
+                fontSize: { xs: '0.8rem', sm: '0.9rem' },
+                fontWeight: 500,
+                textTransform: 'none',
+                minWidth: 'auto'
+              }}
+            >
+              {selectionMode ? 'Abbrechen' : 'Auswählen'}
+            </Button>
+          )}
+        </Toolbar>
+      </AppBar>
 
-      <Box sx={{ p: { xs: 2, md: 3 }, pt: { xs: 10, sm: 12 } }}>
-        {/* Page Header */}
-        <Typography 
-          variant="h4" 
-          component="h1" 
-          sx={{ 
-            mb: { xs: 2, md: 3 },
-            fontWeight: 600,
-            textAlign: 'center',
-            color: 'text.primary'
-          }}
-        >
-          🗑️ Papierkorb ({photos.length} Fotos)
-        </Typography>
-
+      <Box sx={{ p: { xs: 2, md: 3 } }}>
         {/* Breadcrumb Navigation */}
         <Breadcrumbs 
           aria-label="breadcrumb" 
