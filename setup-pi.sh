@@ -45,8 +45,8 @@ sudo systemctl set-default graphical.target
 sudo systemctl enable lightdm
 
 # LightDM für Auto-Login konfigurieren
-if ! grep -q "autologin-user=pi" /etc/lightdm/lightdm.conf; then
-    echo "autologin-user=pi" | sudo tee -a /etc/lightdm/lightdm.conf
+if ! grep -q "autologin-user=zumpe" /etc/lightdm/lightdm.conf; then
+    echo "autologin-user=zumpe" | sudo tee -a /etc/lightdm/lightdm.conf
     echo "autologin-user-timeout=0" | sudo tee -a /etc/lightdm/lightdm.conf
 fi
 

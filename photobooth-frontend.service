@@ -1,23 +1,19 @@
 [Unit]
 Description=Photobooth Frontend Kiosk
-After=graphical-session.target
-Wants=graphical-session.target
+After=graphical.target
+Wants=graphical.target
 After=photobooth-backend.service
 
 [Service]
 Type=simple
-User=pi
+User=zumpe
 Environment=DISPLAY=:0
-Environment=XAUTHORITY=/home/pi/.Xauthority
-WorkingDirectory=/home/pi/photobooth
-ExecStartPre=/bin/sleep 15
-ExecStart=/home/pi/photobooth/start-kiosk.sh
+Environment=XAUTHORITY=/home/zumpe/.Xauthority
+WorkingDirectory=/home/zumpe/photobooth
+ExecStartPre=/bin/sleep 10
+ExecStart=/home/zumpe/photobooth/start-kiosk.sh
 Restart=always
-RestartSec=10
-
-# Logging
-StandardOutput=journal
-StandardError=journal
+RestartSec=5
 
 [Install]
-WantedBy=graphical-session.target
+WantedBy=default.target

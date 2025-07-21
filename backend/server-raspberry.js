@@ -15,7 +15,7 @@ import { promisify } from 'util';
 // Import Auth-Modul
 import { login, verifyToken, requireAuth, getAuthStatus, changePassword } from './auth.js';
 import brandingRoutes from './brandingRoutes.js';
-import { getGPIOInstance } from './gpio-pi5-simple.js';
+import gpio from '../gpio-libgpiod.js';
 
 const execAsync = promisify(exec);
 
@@ -203,93 +203,6 @@ app.use('/photos', express.static(PHOTOS_DIR));
 // Branding-Dateien statisch bereitstellen
 app.use('/branding', express.static(BRANDING_DIR));
 
-// Download-Endpunkt für Fotos mit korrekten Headern
-app.get('/api/photos/:folder/:filename/download', (req, res) => {
-  try {
-    const folder = decodeURIComponent(req.params.folder);
-    const filename = decodeURIComponent(req.params.filename);
-    
-    console.log(`📥 Download request: ${folder}/${filename}`);
-    
-    const photoPath = path.join(PHOTOS_DIR, folder, filename);
-    
-    // Prüfe ob Datei existiert
-    if (!fs.existsSync(photoPath)) {
-      return res.status(404).json({
-        success: false,
-        message: 'Foto nicht gefunden'
-      });
-    }
-    
-    // Stelle sicher, dass Dateiname .jpg Endung hat
-    let downloadFilename = filename;
-    if (!downloadFilename.toLowerCase().endsWith('.jpg')) {
-      const nameWithoutExt = path.parse(downloadFilename).name;
-      downloadFilename = `${nameWithoutExt}.jpg`;
-    }
-    
-    // Setze Download-Header
-    res.setHeader('Content-Disposition', `attachment; filename="${downloadFilename}"`);
-    res.setHeader('Content-Type', 'image/jpeg');
-    
-    // Sende Datei
-    res.sendFile(photoPath);
-    
-  } catch (error) {
-    console.error('❌ Error in photo download:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Fehler beim Herunterladen des Fotos'
-    });
-  }
-});
-
-// Download-Endpunkt für Fotos ohne Folder mit korrekten Headern
-app.get('/api/photos/:filename/download', (req, res) => {
-  try {
-    const filename = decodeURIComponent(req.params.filename);
-    
-    console.log(`📥 Download request: ${filename}`);
-    
-    // Finde das Foto in allen Ordnern
-    const allPhotos = getAllPhotosFromFolders();
-    const photo = allPhotos.find(p => 
-      p.filename === filename || 
-      p.filename === path.basename(filename)
-    );
-    
-    if (!photo) {
-      return res.status(404).json({
-        success: false,
-        message: 'Foto nicht gefunden'
-      });
-    }
-    
-    const photoPath = path.join(PHOTOS_DIR, photo.folder, photo.filename);
-    
-    // Stelle sicher, dass Dateiname .jpg Endung hat
-    let downloadFilename = photo.filename;
-    if (!downloadFilename.toLowerCase().endsWith('.jpg')) {
-      const nameWithoutExt = path.parse(downloadFilename).name;
-      downloadFilename = `${nameWithoutExt}.jpg`;
-    }
-    
-    // Setze Download-Header
-    res.setHeader('Content-Disposition', `attachment; filename="${downloadFilename}"`);
-    res.setHeader('Content-Type', 'image/jpeg');
-    
-    // Sende Datei
-    res.sendFile(photoPath);
-    
-  } catch (error) {
-    console.error('❌ Error in photo download:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Fehler beim Herunterladen des Fotos'
-    });
-  }
-});
-
 // Frontend HTML-Seite servieren
 app.get('/', (req, res) => {
   try {
@@ -454,73 +367,71 @@ function broadcastToClients(message) {
 console.log('🔧 Initializing Raspberry Pi hardware...');
 const camera = new RaspberryPiCamera();
 
-// GPIO Setup für Raspberry Pi 5
+// GPIO Setup
 try {
-  const gpio = getGPIOInstance();
+  // Erstmal GPIO exklusiv für Fotobox reservieren
+  await gpio.reserveGpioForPhotobooth();
   
-  // GPIO für Pi 5 initialisieren
-  const gpioInitialized = await gpio.initialize();
+  // Dann GPIO initialisieren
+  await gpio.setupGpio();
   
-  if (gpioInitialized) {
-    // GPIO Button Event Handler - kompletter Foto-Workflow wie Touch-Button
-    gpio.setPhotoCallback(async () => {
-      console.log('🔘 GPIO Button pressed - starting complete photo workflow...');
-      
-      // 1. Navigation zur Photo-Seite über WebSocket
-      broadcastToClients({
-        type: 'navigate',
-        path: '/photo/new'
-      });
-      
-      // 2. Kurz warten damit Navigation stattfindet
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // 3. Foto machen (gleicher Workflow wie Touch-Button)
-      try {
-        const result = await camera.takePhoto();
-        if (result.success) {
-          console.log(`✅ GPIO Photo taken: ${result.filename}`);
-          
-          // 4. Navigation zur Foto-Ansicht des neuen Fotos (wie Touch-Button)
-          const photoPath = result.folder ? `${result.folder}/${result.filename}` : result.filename;
-          console.log(`🔘 GPIO navigating to photo view: /view/${photoPath}`);
-          
-          broadcastToClients({
-            type: 'navigate',
-            path: `/view/${encodeURIComponent(photoPath)}`
-          });
-          
-          // 5. Optional: Frontend über erfolgreiches Foto informieren
-          broadcastToClients({
-            type: 'photo-taken',
-            filename: result.filename,
-            folder: result.folder,
-            photoPath: photoPath,
-            success: true
-          });
-        } else {
-          console.error('❌ GPIO Photo failed');
-          broadcastToClients({
-            type: 'photo-taken',
-            success: false,
-            error: 'Photo capture failed'
-          });
-        }
-      } catch (error) {
-        console.error('❌ GPIO Photo error:', error);
+  // GPIO Button Event Handler - kompletter Foto-Workflow wie Touch-Button
+  gpio.onButtonPress(async () => {
+    console.log('🔘 GPIO Button pressed - starting complete photo workflow...');
+    
+    // 1. Navigation zur Photo-Seite über WebSocket
+    broadcastToClients({
+      type: 'navigate',
+      path: '/photo/new'
+    });
+    
+    // 2. Kurz warten damit Navigation stattfindet
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    // 3. Foto machen (gleicher Workflow wie Touch-Button)
+    try {
+      const result = await camera.takePhoto();
+      if (result.success) {
+        console.log(`✅ GPIO Photo taken: ${result.filename}`);
+        gpio.blinkLed(); // Feedback
+        
+        // 4. Navigation zur Foto-Ansicht des neuen Fotos (wie Touch-Button)
+        const photoPath = result.folder ? `${result.folder}/${result.filename}` : result.filename;
+        console.log(`🔘 GPIO navigating to photo view: /view/${photoPath}`);
+        
+        broadcastToClients({
+          type: 'navigate',
+          path: `/view/${encodeURIComponent(photoPath)}`
+        });
+        
+        // 5. Optional: Frontend über erfolgreiches Foto informieren
+        broadcastToClients({
+          type: 'photo-taken',
+          filename: result.filename,
+          folder: result.folder,
+          photoPath: photoPath,
+          success: true
+        });
+      } else {
+        console.error('❌ GPIO Photo failed');
         broadcastToClients({
           type: 'photo-taken',
           success: false,
-          error: error.message
+          error: 'Photo capture failed'
         });
       }
-    });
-    
-    console.log('✅ GPIO Pi 5 initialized with photo callback');
-    console.log('📡 WebSocket server running on port 3002');
-  } else {
-    console.warn('⚠️ GPIO initialization failed, continuing without GPIO');
-  }
+    } catch (error) {
+      console.error('❌ GPIO Photo error:', error);
+      broadcastToClients({
+        type: 'photo-taken',
+        success: false,
+        error: error.message
+      });
+    }
+  });
+  
+  console.log('✅ GPIO initialized with auto-navigation handler');
+  console.log('📡 WebSocket server running on port 3002');
 } catch (error) {
   console.error('❌ GPIO initialization failed:', error);
 }
@@ -535,7 +446,8 @@ app.post('/api/photo/take', async (req, res) => {
   console.log('📸 Photo take request received');
   
   try {
-    // GPIO Button Feedback entfernt da keine LED vorhanden
+    // GPIO Button Feedback (Mock LED blink für Kompatibilität)
+    gpio.blinkLed();
     const result = await camera.takePhoto();
     
     if (result.success) {

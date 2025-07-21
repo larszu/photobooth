@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { Box, Typography, IconButton, Button, TextField, Snackbar, Alert, ToggleButtonGroup, ToggleButton, Slider, Dialog, DialogTitle, DialogContent, DialogActions, Breadcrumbs, Link, Switch, FormControlLabel } from '@mui/material';
+import { Box, Typography, AppBar, Toolbar, IconButton, Button, TextField, Snackbar, Alert, ToggleButtonGroup, ToggleButton, Slider, Dialog, DialogTitle, DialogContent, DialogActions, Breadcrumbs, Link } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RestoreFromTrashIcon from '@mui/icons-material/RestoreFromTrash';
@@ -11,11 +11,8 @@ import PaletteIcon from '@mui/icons-material/Palette';
 import HomeIcon from '@mui/icons-material/Home';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import LogoutIcon from '@mui/icons-material/Logout';
-import DarkModeIcon from '@mui/icons-material/DarkMode';
-import LightModeIcon from '@mui/icons-material/LightMode';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 import OnScreenKeyboard from '../components/OnScreenKeyboard';
 import { useVirtualKeyboard } from '../hooks/useVirtualKeyboard';
 
@@ -39,7 +36,6 @@ const AdminPage: React.FC = () => {
   
   const navigate = useNavigate();
   const authContext = useContext(AuthContext);
-  const { darkMode, toggleDarkMode } = useTheme();
 
   // Virtuelle Tastaturen für alle Eingabefelder
   const ssidKeyboard = useVirtualKeyboard(ssid, setSsid, { autoShow: true });
@@ -351,79 +347,69 @@ const AdminPage: React.FC = () => {
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* Freistehende Buttons */}
-      <IconButton 
-        onClick={() => navigate('/gallery')}
-        sx={{
-          position: 'fixed',
-          top: { xs: 16, sm: 20 },
-          left: { xs: 16, sm: 20 },
-          zIndex: 1000,
-          width: { xs: 48, sm: 56 },
-          height: { xs: 48, sm: 56 },
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          color: '#fff',
-          backdropFilter: 'blur(8px)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          '&:hover': { 
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            transform: 'scale(1.05)'
-          },
-          transition: 'all 0.2s'
-        }}
-      >
-        <ArrowBackIcon sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
-      </IconButton>
-      
-      <Box
-        sx={{
-          position: 'fixed',
-          top: { xs: 16, sm: 20 },
-          right: { xs: 16, sm: 20 },
-          zIndex: 1000,
-          display: 'flex',
-          gap: { xs: 1, sm: 2 }
-        }}
-      >
-        <IconButton 
-          onClick={() => navigate('/trash', { state: { fromInternal: true } })}
-          title="Papierkorb"
-          sx={{
-            width: { xs: 48, sm: 56 },
-            height: { xs: 48, sm: 56 },
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            color: '#fff',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            '&:hover': { 
-              backgroundColor: 'rgba(0, 0, 0, 0.8)',
-              transform: 'scale(1.05)'
-            },
-            transition: 'all 0.2s'
+      <AppBar position="static" color="primary">
+        <Toolbar 
+          sx={{ 
+            minHeight: { xs: 56, sm: 64 },
+            px: { xs: 1, sm: 2, md: 3 },
+            width: '100%',
+            maxWidth: '100vw'
           }}
         >
-          <RestoreFromTrashIcon sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
-        </IconButton>
-        
-        <IconButton 
-          onClick={handleLogout}
-          sx={{
-            width: { xs: 48, sm: 56 },
-            height: { xs: 48, sm: 56 },
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            color: '#fff',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            '&:hover': { 
-              backgroundColor: 'rgba(0, 0, 0, 0.8)',
-              transform: 'scale(1.05)'
-            },
-            transition: 'all 0.2s'
-          }}
-        >
-          <LogoutIcon sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
-        </IconButton>
-      </Box>
+          <IconButton 
+            color="inherit" 
+            onClick={() => navigate('/gallery')}
+            sx={{
+              p: { xs: 1, sm: 1.5 },
+              '& .MuiSvgIcon-root': {
+                fontSize: { xs: '1.2rem', sm: '1.5rem' }
+              }
+            }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              flexGrow: 1,
+              fontSize: { xs: '1rem', sm: '1.15rem', md: '1.25rem' },
+              fontWeight: 500,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              ml: { xs: 1, sm: 2 }
+            }}
+          >
+            Admin
+          </Typography>
+          <IconButton 
+            color="inherit" 
+            onClick={() => navigate('/trash', { state: { fromInternal: true } })}
+            sx={{
+              p: { xs: 1, sm: 1.5 },
+              mr: { xs: 0.5, sm: 1 },
+              '& .MuiSvgIcon-root': {
+                fontSize: { xs: '1.2rem', sm: '1.5rem' }
+              }
+            }}
+            title="Papierkorb"
+          >
+            <RestoreFromTrashIcon />
+          </IconButton>
+          <IconButton 
+            color="inherit" 
+            onClick={handleLogout}
+            sx={{
+              p: { xs: 1, sm: 1.5 },
+              '& .MuiSvgIcon-root': {
+                fontSize: { xs: '1.2rem', sm: '1.5rem' }
+              }
+            }}
+          >
+            <LogoutIcon />
+          </IconButton>
+        </Toolbar>
+      </AppBar>
       
       <Box 
         sx={{ 
@@ -431,8 +417,7 @@ const AdminPage: React.FC = () => {
           p: { xs: 2, sm: 3, md: 4 },
           maxWidth: { sm: 600, md: 800 },
           mx: 'auto',
-          width: '100%',
-          pt: { xs: 8, sm: 10 } // Platz für die freistehenden Buttons
+          width: '100%'
         }}
       >
         {/* Breadcrumb Navigation */}
@@ -461,41 +446,6 @@ const AdminPage: React.FC = () => {
             Admin
           </Typography>
         </Breadcrumbs>
-
-        {/* Theme Section */}
-        <Box sx={{ mb: 4, p: 3, bgcolor: 'background.paper', borderRadius: 2, boxShadow: 1 }}>
-          <Typography 
-            variant="h6" 
-            gutterBottom
-            sx={{ fontSize: { xs: '1.2rem', md: '1.5rem' } }}
-          >
-            🎨 Design & Darstellung
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Personalisiere das Erscheinungsbild der Photobooth
-          </Typography>
-          
-          <FormControlLabel
-            control={
-              <Switch
-                checked={darkMode}
-                onChange={toggleDarkMode}
-                icon={<LightModeIcon />}
-                checkedIcon={<DarkModeIcon />}
-                size="medium"
-              />
-            }
-            label={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                {darkMode ? <DarkModeIcon /> : <LightModeIcon />}
-                <Typography variant="body1">
-                  {darkMode ? 'Dark Mode' : 'Light Mode'}
-                </Typography>
-              </Box>
-            }
-            sx={{ mb: 2 }}
-          />
-        </Box>
 
         {/* WLAN Section */}
         <Typography 
