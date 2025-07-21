@@ -1,8 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Photobooth Kiosk
-Comment=Auto-start Photobooth in Kiosk Mode
-Exec=/home/pi/photobooth/start-kiosk.sh
-Hidden=false
-X-GNOME-Autostart-enabled=true
-StartupNotify=false

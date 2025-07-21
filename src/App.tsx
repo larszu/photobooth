@@ -2,7 +2,6 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
 import { AuthProvider } from './context/AuthContext';
-import { ThemeProvider } from './context/ThemeContext';
 import AlwaysAuthenticateRoute from './components/AlwaysAuthenticateRoute';
 import GalleryPage from './pages/GalleryPage';
 import FoldersOverviewPage from './pages/FoldersOverviewPage';
@@ -12,6 +11,17 @@ import PhotoViewPage from './pages/PhotoViewPage';
 import AdminPage from './pages/AdminPage';
 import TrashPage from './pages/TrashPage';
 import useGPIOWebSocket from './hooks/useGPIOWebSocket';
+import CssBaseline from '@mui/material/CssBaseline';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+
+const theme = createTheme({
+  palette: {
+    mode: 'light',
+    primary: { main: '#1976d2' },
+    secondary: { main: '#f50057' },
+  },
+  shape: { borderRadius: 16 },
+});
 
 // Komponente für GPIO-WebSocket-Verbindung
 const GPIOWebSocketWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -26,7 +36,8 @@ const GPIOWebSocketWrapper: React.FC<{ children: React.ReactNode }> = ({ childre
 };
 
 const App: React.FC = () => (
-  <ThemeProvider>
+  <ThemeProvider theme={theme}>
+    <CssBaseline />
     <AuthProvider>
       <AppProvider>
         <Router>

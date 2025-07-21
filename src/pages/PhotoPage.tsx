@@ -1,12 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Typography, IconButton, Button, Dialog, Breadcrumbs, Link } from '@mui/material';
+import { Box, Typography, AppBar, Toolbar, IconButton, Button, Dialog, Breadcrumbs, Link } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ShareIcon from '@mui/icons-material/Share';
 import HomeIcon from '@mui/icons-material/Home';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
-import TimerIcon from '@mui/icons-material/Timer';
-import RemoveIcon from '@mui/icons-material/Remove';
-import AddIcon from '@mui/icons-material/Add';
 
 const PhotoPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -90,50 +88,70 @@ const PhotoPage: React.FC = () => {
 
   return (
     <Box>
-      {/* Freistehender Zurück-Button oben links */}
-      <IconButton 
-        onClick={() => navigate('/gallery')}
-        sx={{
-          position: 'fixed',
-          top: { xs: 16, sm: 20 },
-          left: { xs: 16, sm: 20 },
-          zIndex: 1000,
-          width: { xs: 48, sm: 56 },
-          height: { xs: 48, sm: 56 },
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          color: '#fff',
-          backdropFilter: 'blur(8px)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          '&:hover': { 
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            transform: 'scale(1.05)'
-          },
-          transition: 'all 0.2s'
-        }}
-      >
-        <ArrowBackIcon sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
-      </IconButton>
+      <AppBar position="static" color="primary">
+        <Toolbar 
+          sx={{ 
+            minHeight: { xs: 56, sm: 64 },
+            px: { xs: 1, sm: 2, md: 3 },
+            width: '100%',
+            maxWidth: '100vw'
+          }}
+        >
+          <IconButton 
+            color="inherit" 
+            onClick={() => navigate('/gallery')}
+            sx={{
+              p: { xs: 1, sm: 1.5 },
+              '& .MuiSvgIcon-root': {
+                fontSize: { xs: '1.2rem', sm: '1.5rem' }
+              }
+            }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              flexGrow: 1,
+              fontSize: { xs: '1rem', sm: '1.15rem', md: '1.25rem' },
+              fontWeight: 500,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {isNewPhoto ? 'Neues Foto' : `Foto: ${id}`}
+          </Typography>
+          {!isNewPhoto && (
+            <IconButton 
+              color="inherit"
+              sx={{
+                p: { xs: 1, sm: 1.5 },
+                '& .MuiSvgIcon-root': {
+                  fontSize: { xs: '1.2rem', sm: '1.5rem' }
+                }
+              }}
+            >
+              <ShareIcon />
+            </IconButton>
+          )}
+        </Toolbar>
+      </AppBar>
       
       <Box sx={{ 
         display: 'flex', 
         flexDirection: 'column', 
         alignItems: 'center',
         minHeight: 'calc(100vh - 64px)',
-        maxWidth: '2000px', // Gleiche Maximalgröße wie PhotoViewPage
+        maxWidth: 1200,
         margin: '0 auto',
-        px: 0, // Minimales horizontales Padding wie PhotoViewPage
-        pt: { xs: 0.5, sm: 1, md: 2 }, // Gleiche obere Abstände wie PhotoViewPage
-        pb: { xs: 6, sm: 7, md: 8 }, // Gleiche untere Abstände wie PhotoViewPage
+        pt: { xs: 2, md: 4 },
+        pb: { xs: 2, md: 4 },
       }}>
-        {/* Breadcrumb Navigation - ausgeblendet für gleiche Optik wie PhotoViewPage */}
+        {/* Breadcrumb Navigation */}
         <Breadcrumbs 
           aria-label="breadcrumb" 
-          sx={{ 
-            display: 'none', // Versteckt für identische Optik wie PhotoViewPage
-            mb: { xs: 2, md: 3 }, 
-            alignSelf: 'flex-start', 
-            ml: { xs: 2, md: 2 } 
-          }}
+          sx={{ mb: { xs: 2, md: 3 }, alignSelf: 'flex-start', ml: { xs: 2, md: 0 } }}
         >
           <Link 
             underline="hover" 
@@ -163,27 +181,20 @@ const PhotoPage: React.FC = () => {
         {branding.type === 'text' && branding.text && (
           <Typography variant="h3" sx={{ mb: 2, fontWeight: 700, fontSize: { xs: 28, md: 40 } }}>{branding.text}</Typography>
         )}
-        {/* Kamera-Vorschau im 3:2 Format - gleiche Größe wie PhotoViewPage */}
+        {/* Kamera-Vorschau im 16:10 Format */}
         <Box
           sx={{
             overflow: 'hidden',
             touchAction: 'none',
             borderRadius: 4,
-            width: { 
-              xs: '99vw', // Gleiche Größe wie PhotoViewPage
-              sm: '98vw',
-              md: '97vw',
-              lg: '96vw',
-              xl: '95vw'
-            },
-            maxWidth: '2000px', // Gleiche Maximalgröße wie PhotoViewPage
-            aspectRatio: '3/2', // 3:2 Format wie PhotoViewPage
+            width: '100%',
+            maxWidth: 1000,
+            aspectRatio: '16/10', // 16:10 für Kamera-Vorschau
             background: '#222',
             position: 'relative',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            mx: 'auto', // Zentrieren
           }}
           onDoubleClick={handleDoubleClick}
         >
@@ -201,7 +212,7 @@ const PhotoPage: React.FC = () => {
               fontSize: '2rem'
             }}
           >
-            Kamera bereit
+            📷 Kamera bereit
           </Box>
           
           {/* Auslöse-Buttons */}
@@ -237,7 +248,7 @@ const PhotoPage: React.FC = () => {
                 }}
                 onClick={handleTimerShoot}
               >
-                <TimerIcon sx={{ fontSize: '1.5rem' }} />
+                ⏰
               </Box>
               {/* Haupt-Auslöser - iPhone-Style mit integriertem Countdown - mittig */}
               <Box
@@ -277,6 +288,31 @@ const PhotoPage: React.FC = () => {
               paddingX: 3, // Abstand von den Rändern
               pointerEvents: 'none',
             }}>
+              {/* Zurück zur Galerie Button - links positioniert */}
+              <Box
+                sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  pointerEvents: 'auto',
+                  backdropFilter: 'blur(8px)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  '&:hover': { 
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    transform: 'scale(1.1)'
+                  },
+                  transition: 'all 0.2s'
+                }}
+                onClick={() => navigate('/gallery')}
+              >
+                <ArrowBackIcon sx={{ fontSize: 20 }} />
+              </Box>
             </Box>
           </Box>
         </Box>
@@ -293,7 +329,7 @@ const PhotoPage: React.FC = () => {
               disabled={timerMode === 3}
               onClick={() => setTimerMode(timerOptions[Math.max(0, timerOptions.indexOf(timerMode) - 1)])}
             >
-              <RemoveIcon />
+              ←
             </IconButton>
             <Typography variant="h2" color="primary" fontWeight={700} sx={{ minWidth: 60, textAlign: 'center' }}>
               {timerMode}s
@@ -304,7 +340,7 @@ const PhotoPage: React.FC = () => {
               disabled={timerMode === 10}
               onClick={() => setTimerMode(timerOptions[Math.min(timerOptions.length - 1, timerOptions.indexOf(timerMode) + 1)])}
             >
-              <AddIcon />
+              →
             </IconButton>
           </Box>
           <Button variant="contained" color="primary" sx={{ mt: 3, minWidth: 120, fontSize: 20 }} onClick={startTimer}>
