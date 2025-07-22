@@ -600,7 +600,7 @@ const AdminPage: React.FC = () => {
                 px: { xs: 2, md: 3 }
               }}
             >
-              Alle Fotos löschen
+              Alle Fotos in den Papierkorb verschieben
             </Button>
             <Button 
               variant="outlined" 
