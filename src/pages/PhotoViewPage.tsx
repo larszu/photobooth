@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Box, Typography, AppBar, Toolbar, IconButton } from '@mui/material';
+import { Box, Typography, IconButton } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ShareIcon from '@mui/icons-material/Share';
 import SmartShareDialog from '../components/SmartShareDialog';
@@ -156,48 +156,35 @@ const PhotoViewPage: React.FC = () => {
 
   return (
     <Box>
-      <AppBar position="static" color="primary">
-        <Toolbar 
-          sx={{ 
-            minHeight: { xs: 56, sm: 64 },
-            px: { xs: 1, sm: 2, md: 3 },
-            width: '100%',
-            maxWidth: '100vw'
-          }}
-        >
-          <IconButton 
-            color="inherit" 
-            onClick={handleBackNavigation}
-            sx={{
-              p: { xs: 1, sm: 1.5 },
-              '& .MuiSvgIcon-root': {
-                fontSize: { xs: '1.2rem', sm: '1.5rem' }
-              }
-            }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              flexGrow: 1,
-              fontSize: { xs: '1rem', sm: '1.15rem', md: '1.25rem' },
-              fontWeight: 500,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            Foto: {decodedId}
-          </Typography>
-        </Toolbar>
-      </AppBar>
+      {/* Freistehender Zurück-Button oben links */}
+      <IconButton 
+        onClick={handleBackNavigation}
+        sx={{
+          position: 'fixed',
+          top: { xs: 16, sm: 20 },
+          left: { xs: 16, sm: 20 },
+          zIndex: 1000,
+          width: { xs: 48, sm: 56 },
+          height: { xs: 48, sm: 56 },
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          color: '#fff',
+          backdropFilter: 'blur(8px)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          '&:hover': { 
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            transform: 'scale(1.05)'
+          },
+          transition: 'all 0.2s'
+        }}
+      >
+        <ArrowBackIcon sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
+      </IconButton>
       
       <Box sx={{ 
         display: 'flex', 
         flexDirection: 'column', 
         alignItems: 'center',
-        minHeight: 'calc(100vh - 64px)',
+        minHeight: '100vh', // Geändert von calc(100vh - 64px) zu 100vh
         maxWidth: 1000, // Reduziert von 1200 auf 1000
         margin: '0 auto',
         pt: { xs: 1, md: 2 }, // Reduziertes Padding oben
