@@ -16,8 +16,8 @@ import LightModeIcon from '@mui/icons-material/LightMode';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import OnScreenKeyboard from '../components/OnScreenKeyboard';
-import { useVirtualKeyboard } from '../hooks/useVirtualKeyboard';
+import SimpleKeyboard from '../components/SimpleKeyboard';
+import { useSimpleKeyboard } from '../hooks/useSimpleKeyboard';
 
 const AdminPage: React.FC = () => {
   const [ssid, setSsid] = useState('');
@@ -41,11 +41,37 @@ const AdminPage: React.FC = () => {
   const authContext = useContext(AuthContext);
   const { darkMode, toggleDarkMode } = useTheme();
 
-  // Virtuelle Tastaturen für alle Eingabefelder
-  const ssidKeyboard = useVirtualKeyboard(ssid, setSsid, { autoShow: true });
-  const passwordKeyboard = useVirtualKeyboard(password, setPassword, { autoShow: true });
-  const brandingTextKeyboard = useVirtualKeyboard(brandingText, setBrandingText, { autoShow: true });
-  const [activeKeyboard, setActiveKeyboard] = useState<'none' | 'ssid' | 'password' | 'branding'>('none');
+  // Simple Keyboard Hook - nur ein Keyboard für alle Felder
+  const keyboard = useSimpleKeyboard();
+  const [activeField, setActiveField] = useState<'none' | 'ssid' | 'password' | 'branding'>('none');
+  const [keyboardValue, setKeyboardValue] = useState('');
+
+  // Keyboard-Handler
+  const handleKeyboardOpen = (field: 'ssid' | 'password' | 'branding', currentValue: string) => {
+    setActiveField(field);
+    setKeyboardValue(currentValue);
+    keyboard.showKeyboard();
+  };
+
+  const handleKeyboardChange = (value: string) => {
+    setKeyboardValue(value);
+    switch (activeField) {
+      case 'ssid':
+        setSsid(value);
+        break;
+      case 'password':
+        setPassword(value);
+        break;
+      case 'branding':
+        setBrandingText(value);
+        break;
+    }
+  };
+
+  const handleKeyboardClose = () => {
+    setActiveField('none');
+    keyboard.hideKeyboard();
+  };
 
   // Hilfsfunktionen für Farbkonvertierung
   const hslToHex = (h: number, s: number = 100, l: number = 50): string => {
@@ -522,10 +548,8 @@ const AdminPage: React.FC = () => {
               fontSize: { xs: '1rem', md: '1.1rem' }
             }
           }}
-          onFocus={() => setActiveKeyboard('ssid')}
-          onBlur={() => {
-            // Bleibt offen für Touch-Geräte
-          }}
+          onFocus={() => handleKeyboardOpen('ssid', ssid)}
+          inputRef={keyboard.inputRef}
         />
         <TextField 
           label="WLAN-Passwort" 
@@ -540,10 +564,8 @@ const AdminPage: React.FC = () => {
               fontSize: { xs: '1rem', md: '1.1rem' }
             }
           }}
-          onFocus={() => setActiveKeyboard('password')}
-          onBlur={() => {
-            // Bleibt offen für Touch-Geräte
-          }}
+          onFocus={() => handleKeyboardOpen('password', password)}
+          inputRef={keyboard.inputRef}
         />
         
         <Box sx={{ 
@@ -807,10 +829,8 @@ const AdminPage: React.FC = () => {
                     fontSize: { xs: '1rem', md: '1.1rem' }
                   }
                 }}
-                onFocus={() => setActiveKeyboard('branding')}
-                onBlur={() => {
-                  // Bleibt offen für Touch-Geräte
-                }}
+                onFocus={() => handleKeyboardOpen('branding', brandingText)}
+                inputRef={keyboard.inputRef}
               />
               <Button 
                 variant="contained" 
@@ -1025,32 +1045,14 @@ const AdminPage: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Virtuelle Tastaturen */}
-      <OnScreenKeyboard
-        isVisible={activeKeyboard === 'ssid'}
-        onKeyPress={ssidKeyboard.handleKeyPress}
-        onBackspace={ssidKeyboard.handleBackspace}
-        onEnter={ssidKeyboard.handleEnter}
-        onClose={() => setActiveKeyboard('none')}
-        position="bottom"
-      />
-
-      <OnScreenKeyboard
-        isVisible={activeKeyboard === 'password'}
-        onKeyPress={passwordKeyboard.handleKeyPress}
-        onBackspace={passwordKeyboard.handleBackspace}
-        onEnter={passwordKeyboard.handleEnter}
-        onClose={() => setActiveKeyboard('none')}
-        position="bottom"
-      />
-
-      <OnScreenKeyboard
-        isVisible={activeKeyboard === 'branding'}
-        onKeyPress={brandingTextKeyboard.handleKeyPress}
-        onBackspace={brandingTextKeyboard.handleBackspace}
-        onEnter={brandingTextKeyboard.handleEnter}
-        onClose={() => setActiveKeyboard('none')}
-        position="bottom"
+      {/* Simple Keyboard - vereinheitlicht */}
+      <SimpleKeyboard
+        isVisible={keyboard.isVisible && activeField !== 'none'}
+        value={keyboardValue}
+        onChange={handleKeyboardChange}
+        onClose={handleKeyboardClose}
+        placeholder={activeField === 'ssid' ? 'WLAN-Name (SSID)' : activeField === 'password' ? 'WLAN-Passwort' : 'Branding-Text'}
+        theme={darkMode ? 'dark' : 'light'}
       />
     </Box>
   );
