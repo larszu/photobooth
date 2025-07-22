@@ -44,7 +44,7 @@ const GalleryPage: React.FC = () => {
           </Grid>
         )}
         <Box mt={3} display="flex" justifyContent="center">
-          <Button variant="contained" color="secondary" size="large" startIcon={<PhotoCameraIcon />} onClick={() => fetch('/api/photo/take', { method: 'POST' }).then(() => window.location.reload())}>
+          <Button variant="contained" color="secondary" size="large" startIcon={<PhotoCameraIcon />} onClick={() => fetch('/api/camera/shoot', { method: 'POST' }).then(() => window.location.reload())}>
             Foto aufnehmen
           </Button>
         </Box>
