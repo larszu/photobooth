@@ -111,18 +111,34 @@ const OnScreenKeyboard: React.FC<OnScreenKeyboardProps> = ({
     left: 0,
     right: 0,
     width: '100%',
-    [position]: avoidCollision ? '8px' : 0,
+    [position]: avoidCollision ? { xs: '8px', sm: '12px', md: '16px' } : 0,
     zIndex: 9999,
     backgroundColor: '#f5f5f5',
     border: '1px solid #ddd',
     borderRadius: position === 'bottom' ? '12px 12px 0 0' : '0 0 12px 12px',
-    padding: '8px',
-    maxHeight: `${maxHeightPercent}vh`,
+    padding: { xs: '4px', sm: '8px', md: '12px' },
+    maxHeight: { 
+      xs: `${Math.min(maxHeightPercent + 10, 40)}vh`, // Reduziert für mobile
+      sm: `${Math.min(maxHeightPercent + 5, 35)}vh`, 
+      md: `${maxHeightPercent}vh` 
+    },
     overflow: 'hidden',
+    // Responsive Container
     boxSizing: 'border-box' as const,
     display: 'flex',
     flexDirection: 'column' as const,
+    // Schatten für bessere Sichtbarkeit
     boxShadow: '0 -4px 20px rgba(0,0,0,0.15)',
+    // Smart positioning to avoid UI collision - optimiert für Login
+    ...(avoidCollision && position === 'bottom' && {
+      marginBottom: { xs: '0px', sm: '8px', md: '16px' },
+      // Bessere Abstandsregeln für kleinere Screens
+      bottom: { xs: 0, sm: 8, md: 16 }
+    }),
+    ...(avoidCollision && position === 'top' && {
+      marginTop: { xs: '0px', sm: '8px', md: '16px' },
+      top: { xs: 0, sm: 8, md: 16 }
+    })
   };
 
   if (!isVisible) return null;

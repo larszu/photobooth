@@ -21,8 +21,8 @@ import {
 } from '@mui/icons-material';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import SimpleKeyboard from './SimpleKeyboard';
-import { useSimpleKeyboard } from '../hooks/useSimpleKeyboard';
+import OnScreenKeyboard from './OnScreenKeyboard';
+import { useVirtualKeyboard } from '../hooks/useVirtualKeyboard';
 
 interface LoginPageProps {
   onLoginSuccess?: () => void;
@@ -38,8 +38,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const authContext = useContext(AuthContext);
   const navigate = useNavigate();
 
-  // Simple Keyboard Hook
-  const { isKeyboardVisible, showKeyboard, hideKeyboard, currentInputRef } = useSimpleKeyboard();
+  // Virtual Keyboard Hooks
+  const usernameKeyboard = useVirtualKeyboard(username, setUsername, { autoShow: false });
+  const passwordKeyboard = useVirtualKeyboard(password, setPassword, { autoShow: false });
 
   // Deaktiviere Auto-Logout auf der Login-Seite
   useEffect(() => {
@@ -95,12 +96,14 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     <Container
       maxWidth="sm"
       sx={{
-        height: '100vh',
+        minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         px: 2,
+        py: { xs: 2, sm: 3, md: 4 }, // Responsive padding
+        position: 'relative'
       }}
     >
       {/* Back Button */}
@@ -166,11 +169,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               autoFocus
               disabled={loading}
               sx={{ mb: 2 }}
-              onFocus={() => {
-                currentInputRef.current = { value: username, setValue: setUsername };
-                showKeyboard();
-              }}
-              onBlur={hideKeyboard}
+              onFocus={usernameKeyboard.showKeyboard}
             />
             
             <TextField
@@ -197,11 +196,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 ),
               }}
               sx={{ mb: 3 }}
-              onFocus={() => {
-                currentInputRef.current = { value: password, setValue: setPassword };
-                showKeyboard();
-              }}
-              onBlur={hideKeyboard}
+              onFocus={passwordKeyboard.showKeyboard}
             />
 
             <Button
@@ -223,16 +218,27 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         </CardContent>
       </Card>
 
-      {/* Simple Keyboard */}
-      <SimpleKeyboard 
-        isVisible={isKeyboardVisible}
-        currentValue={currentInputRef.current?.value || ''}
-        onInput={(value) => {
-          if (currentInputRef.current?.setValue) {
-            currentInputRef.current.setValue(value);
-          }
-        }}
-        onClose={hideKeyboard}
+      {/* OnScreenKeyboards - kompakt für Login-Seite */}
+      <OnScreenKeyboard
+        isVisible={usernameKeyboard.isKeyboardVisible}
+        onKeyPress={usernameKeyboard.handleKeyPress}
+        onBackspace={usernameKeyboard.handleBackspace}
+        onEnter={usernameKeyboard.handleEnter}
+        onClose={usernameKeyboard.hideKeyboard}
+        position="bottom"
+        avoidCollision={true}
+        maxHeightPercent={20}
+      />
+      
+      <OnScreenKeyboard
+        isVisible={passwordKeyboard.isKeyboardVisible}
+        onKeyPress={passwordKeyboard.handleKeyPress}
+        onBackspace={passwordKeyboard.handleBackspace}
+        onEnter={passwordKeyboard.handleEnter}
+        onClose={passwordKeyboard.hideKeyboard}
+        position="bottom"
+        avoidCollision={true}
+        maxHeightPercent={20}
       />
     </Container>
   );
