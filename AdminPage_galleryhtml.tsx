@@ -16,7 +16,7 @@ import LightModeIcon from '@mui/icons-material/LightMode';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import OnScreenKeyboard from '../components/OnScreenKeyboard';
+import SimpleKeyboard from '../components/SimpleKeyboard';
 import { useVirtualKeyboard } from '../hooks/useVirtualKeyboard';
 
 const AdminPage: React.FC = () => {
@@ -1026,7 +1026,7 @@ const AdminPage: React.FC = () => {
       </Dialog>
 
       {/* Virtuelle Tastaturen */}
-      <OnScreenKeyboard
+      <SimpleKeyboard
         isVisible={activeKeyboard === 'ssid'}
         onKeyPress={ssidKeyboard.handleKeyPress}
         onBackspace={ssidKeyboard.handleBackspace}
@@ -1035,7 +1035,7 @@ const AdminPage: React.FC = () => {
         position="bottom"
       />
 
-      <OnScreenKeyboard
+      <SimpleKeyboard
         isVisible={activeKeyboard === 'password'}
         onKeyPress={passwordKeyboard.handleKeyPress}
         onBackspace={passwordKeyboard.handleBackspace}
@@ -1044,7 +1044,7 @@ const AdminPage: React.FC = () => {
         position="bottom"
       />
 
-      <OnScreenKeyboard
+      <SimpleKeyboard
         isVisible={activeKeyboard === 'branding'}
         onKeyPress={brandingTextKeyboard.handleKeyPress}
         onBackspace={brandingTextKeyboard.handleBackspace}
