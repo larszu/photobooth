@@ -1,351 +1,174 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Typography, AppBar, Toolbar, IconButton, Button, Dialog, Breadcrumbs, Link } from '@mui/material';
+import { Box, Typography, AppBar, Toolbar, IconButton, Button, CircularProgress, Dialog } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import ShareIcon from '@mui/icons-material/Share';
-import HomeIcon from '@mui/icons-material/Home';
-import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
+import QrCodeIcon from '@mui/icons-material/QrCode';
 
 const PhotoPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [branding, setBranding] = useState<{ type: 'logo' | 'text', logo?: string, text?: string }>({ type: 'text', text: '' });
-  // Selbstauslöser-Logik
-  const [timerMode, setTimerMode] = useState<3 | 5 | 10>(3);
-  const [countdown, setCountdown] = useState<number | null>(null);
-  const [shooting, setShooting] = useState(false);
-  const [timerDialog, setTimerDialog] = useState(false);
+  const [qr, setQr] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [zoom, setZoom] = useState(1);
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
+  const [touchMove, setTouchMove] = useState<{ x: number; y: number } | null>(null);
+  const [showDialog, setShowDialog] = useState(false);
+  const [allPhotos, setAllPhotos] = useState<string[]>([]);
+  const [currentIndex, setCurrentIndex] = useState<number>(-1);
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const [swipeAnimating, setSwipeAnimating] = useState(false);
+  const [branding, setBranding] = useState<{ type: 'logo' | 'text', logo?: string, text?: string }>({ type: 'logo' });
   const navigate = useNavigate();
+  const imgRef = useRef<HTMLImageElement>(null);
 
-  // Diese Seite ist nur für neue Fotos (mit Auslöse-Buttons)
-  const isNewPhoto = true;
+  // Lade QR-Code
+  useEffect(() => {
+    fetch(`/api/qrcode?mode=single&photo=${id}`)
+      .then(res => res.json())
+      .then(data => setQr(data.qr))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  // Lade alle Fotos und setze aktuellen Index
+  useEffect(() => {
+    fetch('/api/photos')
+      .then(res => res.json())
+      .then(data => {
+        setAllPhotos(data.photos);
+        const idx = data.photos.findIndex((p: string) => p === id);
+        setCurrentIndex(idx);
+      });
+  }, [id]);
 
   // Lade Branding-Daten
   useEffect(() => {
-    fetch('http://localhost:3001/api/branding')
+    fetch('/api/branding')
       .then(res => res.json())
-      .then(data => {
-        console.log('Branding response:', data);
-        if (data.success) {
-          setBranding(data);
-          console.log('Branding data loaded:', data);
-        }
-      })
-      .catch(err => console.error('Error loading branding:', err));
-  }, []);
+      .then(data => setBranding(data));
+  }, [id]);
 
-  // Doppeltippen für Kamera-Einstellungen
-  const handleDoubleClick = () => {
-    // Hier könnten Kamera-Einstellungen geöffnet werden
-  };
-
-  // Foto aufnehmen (direkt oder mit Timer)
-  const handleShoot = async () => {
-    setShooting(true);
-    try {
-      const res = await fetch('http://localhost:3001/api/photo/take', { method: 'POST' });
-      const data = await res.json();
-      console.log('Photo take response:', data);
-      if (data.success && data.filename) {
-        // Zur Einzelansicht des neuen Fotos navigieren
-        // Verwende den vollständigen Pfad aus folder/filename falls verfügbar
-        const photoPath = data.folder ? `${data.folder}/${data.filename}` : data.filename;
-        navigate(`/view/${encodeURIComponent(photoPath)}`);
-      } else {
-        alert('Fehler beim Aufnehmen des Fotos');
-      }
-    } catch (e) {
-      console.error('Error taking photo:', e);
-      alert('Fehler beim Aufnehmen des Fotos');
+  // Touch-Events für Zoom und Swipe
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      setIsZoomed(true);
+    } else if (e.touches.length === 1) {
+      setTouchStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+      setSwipeOffset(0);
     }
-    setShooting(false);
   };
 
-  // Selbstauslöser starten
-  const handleTimerShoot = () => {
-    setTimerDialog(true);
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2 && isZoomed) {
+      // Pinch-Zoom
+      const dist = Math.abs(e.touches[0].clientX - e.touches[1].clientX);
+      setZoom(Math.min(3, Math.max(1, dist / 150)));
+    } else if (e.touches.length === 1 && touchStart) {
+      const offset = e.touches[0].clientX - touchStart.x;
+      setTouchMove({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+      setSwipeOffset(offset);
+    }
   };
 
-  // Timer-Auswahl bestätigen
-  const startTimer = () => {
-    setTimerDialog(false);
-    setCountdown(timerMode);
-  };
-
-  // Countdown runterzählen und dann auslösen
-  useEffect(() => {
-    if (countdown === null) return;
-    if (countdown === 0) {
-      setCountdown(null);
-      handleShoot();
+  const handleTouchEnd = () => {
+    if (isZoomed) {
+      if (zoom < 1.1) {
+        // Rauszoomen: zurück zur Galerie
+        navigate('/gallery');
+      }
+      setIsZoomed(false);
+      setZoom(1);
+      setSwipeOffset(0);
       return;
     }
-    const t = setTimeout(() => setCountdown(c => (c !== null ? c - 1 : null)), 1000);
-    return () => clearTimeout(t);
-  }, [countdown]);
+    if (touchStart && touchMove && Math.abs(touchMove.x - touchStart.x) > 50) {
+      const dx = touchMove.x - touchStart.x;
+      setSwipeAnimating(true);
+      setTimeout(() => {
+        setSwipeAnimating(false);
+        setSwipeOffset(0);
+        if (dx > 50 && currentIndex > 0) {
+          // Swipe right: vorheriges Bild
+          navigate(`/photo/${allPhotos[currentIndex - 1]}`);
+        } else if (dx < -50 && currentIndex < allPhotos.length - 1) {
+          // Swipe left: nächstes Bild
+          navigate(`/photo/${allPhotos[currentIndex + 1]}`);
+        }
+      }, 150);
+    } else {
+      setSwipeOffset(0);
+    }
+    setTouchStart(null);
+    setTouchMove(null);
+  };
 
-  // Timer-Auswahl (Overlay)
-  const timerOptions: (3 | 5 | 10)[] = [3, 5, 10];
+  // Doppeltippen für Zoom
+  const handleDoubleClick = () => {
+    setShowDialog(true);
+  };
 
   return (
     <Box>
       <AppBar position="static" color="primary">
-        <Toolbar 
-          sx={{ 
-            minHeight: { xs: 56, sm: 64 },
-            px: { xs: 1, sm: 2, md: 3 },
-            width: '100%',
-            maxWidth: '100vw'
-          }}
-        >
-          <IconButton 
-            color="inherit" 
-            onClick={() => navigate('/gallery')}
-            sx={{
-              p: { xs: 1, sm: 1.5 },
-              '& .MuiSvgIcon-root': {
-                fontSize: { xs: '1.2rem', sm: '1.5rem' }
-              }
-            }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              flexGrow: 1,
-              fontSize: { xs: '1rem', sm: '1.15rem', md: '1.25rem' },
-              fontWeight: 500,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {isNewPhoto ? 'Neues Foto' : `Foto: ${id}`}
-          </Typography>
-          {!isNewPhoto && (
-            <IconButton 
-              color="inherit"
-              sx={{
-                p: { xs: 1, sm: 1.5 },
-                '& .MuiSvgIcon-root': {
-                  fontSize: { xs: '1.2rem', sm: '1.5rem' }
-                }
-              }}
-            >
-              <ShareIcon />
-            </IconButton>
-          )}
+        <Toolbar>
+          <IconButton color="inherit" onClick={() => navigate('/gallery')}><ArrowBackIcon /></IconButton>
+          <Typography variant="h6" sx={{ flexGrow: 1 }}>Foto-Ansicht</Typography>
         </Toolbar>
       </AppBar>
-      
-      <Box sx={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center',
-        minHeight: 'calc(100vh - 64px)',
-        maxWidth: 1200,
-        margin: '0 auto',
-        pt: { xs: 2, md: 4 },
-        pb: { xs: 2, md: 4 },
-      }}>
-        {/* Breadcrumb Navigation */}
-        <Breadcrumbs 
-          aria-label="breadcrumb" 
-          sx={{ mb: { xs: 2, md: 3 }, alignSelf: 'flex-start', ml: { xs: 2, md: 0 } }}
-        >
-          <Link 
-            underline="hover" 
-            color="inherit" 
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              navigate('/gallery');
-            }}
-            sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-          >
-            <HomeIcon fontSize="inherit" />
-            Home
-          </Link>
-          <Typography 
-            color="text.primary"
-            sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-          >
-            <PhotoCameraIcon fontSize="inherit" />
-            Foto aufnehmen
-          </Typography>
-        </Breadcrumbs>
-
+      <Box p={2} display="flex" flexDirection="column" alignItems="center">
         {branding.type === 'logo' && branding.logo && (
-          <img src={branding.logo} alt="Branding Logo" style={{ maxHeight: 120, marginBottom: 16 }} />
+          <img src={branding.logo} alt="Branding Logo" style={{ maxHeight: 60, marginBottom: 8 }} />
         )}
         {branding.type === 'text' && branding.text && (
-          <Typography variant="h3" sx={{ mb: 2, fontWeight: 700, fontSize: { xs: 28, md: 40 } }}>{branding.text}</Typography>
+          <Typography variant="h5" sx={{ mb: 1, fontWeight: 600 }}>{branding.text}</Typography>
         )}
-        {/* Kamera-Vorschau im 16:10 Format */}
         <Box
           sx={{
             overflow: 'hidden',
             touchAction: 'none',
-            borderRadius: 4,
-            width: '100%',
-            maxWidth: 1000,
-            aspectRatio: '16/10', // 16:10 für Kamera-Vorschau
-            background: '#222',
+            borderRadius: 2,
+            maxWidth: '100%',
+            maxHeight: 400,
             position: 'relative',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
           }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
           onDoubleClick={handleDoubleClick}
         >
-          {/* Kamera-Vorschau für neue Foto-Aufnahme */}
-          <Box
-            sx={{
-              width: '100%',
-              height: '100%',
-              backgroundColor: '#000',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 2,
-              color: '#fff',
-              fontSize: '2rem'
+          <img
+            ref={imgRef}
+            src={`/photos/${id}`}
+            alt={id}
+            loading="lazy"
+            style={{
+              maxWidth: '100%',
+              maxHeight: 400,
+              borderRadius: 16,
+              transform: `scale(${zoom}) translateX(${swipeOffset}px)` ,
+              transition: swipeAnimating ? 'transform 0.15s' : isZoomed ? 'none' : 'transform 0.2s',
+              touchAction: 'none',
             }}
-          >
-            📷 Kamera bereit
-          </Box>
-          
-          {/* Auslöse-Buttons */}
-          <Box sx={{
-            position: 'absolute',
-            bottom: 32,
-            left: 0,
-            right: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            pointerEvents: 'none',
-          }}>
-            {/* Haupt-Auslöser mittig positioniert */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', width: '100%' }}>
-              {/* Selbstauslöser-Button - weiter links positioniert */}
-              <Box
-                sx={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: '50%',
-                  backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  pointerEvents: 'auto',
-                  border: '2px solid #1976d2',
-                  fontSize: '1.5rem',
-                  '&:hover': { backgroundColor: 'rgba(255, 255, 255, 1)' },
-                  position: 'absolute',
-                  left: 'calc(50% - 120px)', // Weiter links vom Zentrum
-                }}
-                onClick={handleTimerShoot}
-              >
-                ⏰
-              </Box>
-              {/* Haupt-Auslöser - iPhone-Style mit integriertem Countdown - mittig */}
-              <Box
-                sx={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: '50%',
-                  backgroundColor: countdown !== null ? '#1976d2' : (shooting ? '#1976d2' : '#fff'),
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: (shooting || countdown !== null) ? 'not-allowed' : 'pointer',
-                  pointerEvents: 'auto',
-                  border: '4px solid #333',
-                  fontSize: countdown !== null ? '2.5rem' : '2rem',
-                  fontWeight: countdown !== null ? 700 : 400,
-                  transform: shooting ? 'scale(0.9)' : 'scale(1)',
-                  transition: 'all 0.1s',
-                  '&:hover': { backgroundColor: countdown !== null ? '#1976d2' : (shooting ? '#1976d2' : '#f5f5f5') },
-                  color: countdown !== null ? '#fff' : '#000',
-                  opacity: (shooting || countdown !== null) ? 0.7 : 1
-                }}
-                onClick={(shooting || countdown !== null) ? undefined : handleShoot}
-              >
-                {countdown !== null ? countdown : (shooting ? '📸' : '')}
-              </Box>
-            </Box>
-            
-            {/* Navigation Buttons als Overlay */}
-            <Box sx={{
-              position: 'absolute',
-              bottom: 20, // Gleiche Position wie auf PhotoViewPage
-              left: 0,
-              right: 0,
-              display: 'flex',
-              alignItems: 'center',
-              paddingX: 3, // Abstand von den Rändern
-              pointerEvents: 'none',
-            }}>
-              {/* Zurück zur Galerie Button - links positioniert */}
-              <Box
-                sx={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: '50%',
-                  backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                  color: '#fff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  pointerEvents: 'auto',
-                  backdropFilter: 'blur(8px)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  '&:hover': { 
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    transform: 'scale(1.1)'
-                  },
-                  transition: 'all 0.2s'
-                }}
-                onClick={() => navigate('/gallery')}
-              >
-                <ArrowBackIcon sx={{ fontSize: 20 }} />
-              </Box>
-            </Box>
-          </Box>
+            draggable={false}
+            onWheel={e => {
+              // Optional: Zoom per Mausrad für Desktop
+              if (e.ctrlKey) {
+                setZoom(z => Math.max(1, Math.min(3, z + (e.deltaY < 0 ? 0.1 : -0.1))));
+                setIsZoomed(true);
+              }
+            }}
+          />
         </Box>
-      </Box>
-      
-      {/* Timer-Auswahl-Dialog */}
-      <Dialog open={timerDialog} onClose={() => setTimerDialog(false)} maxWidth="xs">
-        <Box p={3} display="flex" flexDirection="column" alignItems="center">
-          <Typography variant="h6" sx={{ mb: 2 }}>Selbstauslöser</Typography>
-          <Box display="flex" alignItems="center" gap={2}>
-            <IconButton
-              size="large"
-              sx={{ color: '#1976d2', opacity: timerMode === 3 ? 0.3 : 1 }}
-              disabled={timerMode === 3}
-              onClick={() => setTimerMode(timerOptions[Math.max(0, timerOptions.indexOf(timerMode) - 1)])}
-            >
-              ←
-            </IconButton>
-            <Typography variant="h2" color="primary" fontWeight={700} sx={{ minWidth: 60, textAlign: 'center' }}>
-              {timerMode}s
-            </Typography>
-            <IconButton
-              size="large"
-              sx={{ color: '#1976d2', opacity: timerMode === 10 ? 0.3 : 1 }}
-              disabled={timerMode === 10}
-              onClick={() => setTimerMode(timerOptions[Math.min(timerOptions.length - 1, timerOptions.indexOf(timerMode) + 1)])}
-            >
-              →
-            </IconButton>
+        {loading ? <CircularProgress sx={{ mt: 2 }} /> : qr && (
+          <Box mt={2}>
+            <img src={qr} alt="QR-Code" style={{ width: 180, height: 180 }} />
+            <Typography variant="body2" align="center" mt={1}>QR-Code zum Teilen</Typography>
           </Box>
-          <Button variant="contained" color="primary" sx={{ mt: 3, minWidth: 120, fontSize: 20 }} onClick={startTimer}>
-            Start
-          </Button>
+        )}
+        <Button variant="outlined" color="primary" sx={{ mt: 3 }} onClick={() => navigate('/gallery')}>Zurück zur Galerie</Button>
+      </Box>
+      <Dialog open={showDialog} onClose={() => setShowDialog(false)} maxWidth="md">
+        <Box p={2} display="flex" flexDirection="column" alignItems="center">
+          <img src={`/photos/${id}`} alt={id} style={{ maxWidth: '90vw', maxHeight: '80vh' }} />
         </Box>
       </Dialog>
     </Box>
