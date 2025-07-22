@@ -1,9 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Box, Typography, IconButton, Button } from '@mui/material';
+import { Box, Typography, AppBar, Toolbar, IconButton } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ShareIcon from '@mui/icons-material/Share';
-import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import SmartShareDialog from '../components/SmartShareDialog';
 import SmartShareV2Dialog from '../components/SmartShareV2Dialog';
 
@@ -157,38 +156,53 @@ const PhotoViewPage: React.FC = () => {
 
   return (
     <Box>
-      {/* Freistehender Zurück-Button oben links */}
-      <IconButton 
-        onClick={handleBackNavigation}
-        sx={{
-          position: 'fixed',
-          top: { xs: 16, sm: 20 },
-          left: { xs: 16, sm: 20 },
-          zIndex: 1000,
-          width: { xs: 48, sm: 56 },
-          height: { xs: 48, sm: 56 },
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          color: '#fff',
-          backdropFilter: 'blur(8px)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          '&:hover': { 
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            transform: 'scale(1.05)'
-          },
-          transition: 'all 0.2s'
-        }}
-      >
-        <ArrowBackIcon sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
-      </IconButton>
+      <AppBar position="static" color="primary">
+        <Toolbar 
+          sx={{ 
+            minHeight: { xs: 56, sm: 64 },
+            px: { xs: 1, sm: 2, md: 3 },
+            width: '100%',
+            maxWidth: '100vw'
+          }}
+        >
+          <IconButton 
+            color="inherit" 
+            onClick={handleBackNavigation}
+            sx={{
+              p: { xs: 1, sm: 1.5 },
+              '& .MuiSvgIcon-root': {
+                fontSize: { xs: '1.2rem', sm: '1.5rem' }
+              }
+            }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              flexGrow: 1,
+              fontSize: { xs: '1rem', sm: '1.15rem', md: '1.25rem' },
+              fontWeight: 500,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            Foto: {decodedId}
+          </Typography>
+        </Toolbar>
+      </AppBar>
       
       <Box sx={{ 
         display: 'flex', 
         flexDirection: 'column', 
         alignItems: 'center',
-        minHeight: '100vh', // Jetzt volle Höhe nutzen
-        pt: { xs: 0.5, sm: 1, md: 2 }, // Minimales Padding oben
-        pb: { xs: 6, sm: 7, md: 8 }, // Minimales Padding unten
-        px: 0, // Kein seitliches Padding
+        minHeight: 'calc(100vh - 64px)',
+        maxWidth: 1000, // Reduziert von 1200 auf 1000
+        margin: '0 auto',
+        pt: { xs: 1, md: 2 }, // Reduziertes Padding oben
+        pb: { xs: 1, md: 2 }, // Reduziertes Padding unten
+        px: { xs: 1, md: 2 }, // Horizontales Padding hinzugefügt
       }}>
         {branding.type === 'logo' && branding.logo && (
           <img src={branding.logo} alt="Branding Logo" style={{ maxHeight: 120, marginBottom: 16 }} />
@@ -197,21 +211,21 @@ const PhotoViewPage: React.FC = () => {
           <Typography variant="h3" sx={{ mb: 2, fontWeight: 700, fontSize: { xs: 28, md: 40 } }}>{branding.text}</Typography>
         )}
         
-        {/* Foto-Anzeige im 3:2 Format - absolute maximale Größe */}
+        {/* Foto-Anzeige im 3:2 Format */}
         <Box
           sx={{
             overflow: 'hidden',
             touchAction: 'none',
             borderRadius: 4,
             width: { 
-              xs: '99vw', // Fast 100% der Viewport-Breite
-              sm: '98vw',
-              md: '97vw',
-              lg: '96vw',
-              xl: '95vw'
+              xs: '95%',
+              sm: '90%',
+              md: '80%',
+              lg: '70%',
+              xl: '60%'
             },
-            maxWidth: '2000px', // Sehr große absolute Maximalgröße
-            aspectRatio: '3/2', // 3:2 Format beibehalten
+            maxWidth: 800, // Reduziert von 1000 auf 800
+            aspectRatio: '3/2', // 3:2 Format für Einzelansicht
             background: '#222',
             position: 'relative',
             display: 'flex',
@@ -264,43 +278,89 @@ const PhotoViewPage: React.FC = () => {
             paddingX: 3, // Abstand von den Rändern
             pointerEvents: 'none',
           }}>
+            {/* Zurück zur Galerie Button - links positioniert */}
+            <Box
+              sx={{
+                width: 48,
+                height: 48,
+                borderRadius: '50%',
+                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                pointerEvents: 'auto',
+                backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                '&:hover': { 
+                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                  transform: 'scale(1.1)'
+                },
+                transition: 'all 0.2s'
+              }}
+              onClick={handleBackNavigation}
+            >
+              <ArrowBackIcon sx={{ fontSize: 20 }} />
+            </Box>
             
+            {/* Weiteres Foto aufnehmen Button - perfekt mittig */}
+            <Box
+              sx={{
+                position: 'absolute',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                padding: '8px 16px',
+                borderRadius: '20px',
+                backgroundColor: 'rgba(25, 118, 210, 0.9)',
+                color: '#fff',
+                fontSize: '14px',
+                fontWeight: 500,
+                cursor: 'pointer',
+                pointerEvents: 'auto',
+                backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                '&:hover': { 
+                  backgroundColor: 'rgba(25, 118, 210, 1)',
+                  transform: 'translateX(-50%) scale(1.05)'
+                },
+                transition: 'all 0.2s'
+              }}
+              onClick={() => navigate('/photo/new')}
+            >
+              📸 Neues Foto
+            </Box>
+            
+            {/* Teilen Button - rechts positioniert */}
+            <Box
+              sx={{
+                width: 48,
+                height: 48,
+                borderRadius: '50%',
+                backgroundColor: 'rgba(76, 175, 80, 0.8)',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                pointerEvents: 'auto',
+                backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                position: 'absolute',
+                right: 24, // Abstand vom rechten Rand
+                '&:hover': { 
+                  backgroundColor: 'rgba(76, 175, 80, 1)',
+                  transform: 'scale(1.1)'
+                },
+                transition: 'all 0.2s'
+              }}
+              onClick={() => {
+                setShareV2DialogOpen(true);
+              }}
+            >
+              <ShareIcon sx={{ fontSize: 20 }} />
+            </Box>
           </Box>
-        </Box>
-        
-        {/* Weiteres Foto aufnehmen Button - unten mittig wie auf anderen Seiten */}
-        <Box 
-          sx={{ 
-            position: 'fixed',
-            bottom: { xs: 16, md: 24 },
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 1000
-          }}
-        >
-          <Button 
-            variant="contained" 
-            color="primary" 
-            size="large"
-            startIcon={<PhotoCameraIcon />} 
-            onClick={() => navigate('/photo/new')}
-            sx={{
-              borderRadius: { xs: 3, md: 4 },
-              px: { xs: 3, md: 4 },
-              py: { xs: 1.5, md: 2 },
-              fontSize: { xs: '1rem', md: '1.2rem' },
-              fontWeight: 600,
-              boxShadow: 4,
-              backgroundColor: '#1976d2',
-              '&:hover': {
-                backgroundColor: '#1565c0',
-                boxShadow: 6,
-                transform: 'scale(1.05)'
-              }
-            }}
-          >
-            Foto aufnehmen
-          </Button>
         </Box>
         
       </Box>
