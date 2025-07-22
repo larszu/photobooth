@@ -14,13 +14,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [lastPhoto, setLastPhoto] = useState<string | null>(null);
 
   useEffect(() => {
+    // Versuche API-Calls mit Fallback
     fetch('/api/mode')
       .then(res => res.json())
-      .then(data => setMode(data.mode));
+      .then(data => setMode(data.mode))
+      .catch(err => {
+        console.warn('Mode API not available, using default:', err);
+        setMode('gallery');
+      });
+    
     fetch('/api/photos/last')
       .then(res => res.json())
       .then(data => setLastPhoto(data.filename))
-      .catch(() => setLastPhoto(null));
+      .catch(err => {
+        console.warn('Last photo API not available:', err);
+        setLastPhoto(null);
+      });
   }, []);
 
   return (

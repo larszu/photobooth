@@ -166,60 +166,64 @@ const FolderGalleryPage: React.FC = () => {
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <AppBar position="static" color="primary">
-        <Toolbar 
-          sx={{ 
-            minHeight: { xs: 56, sm: 64 },
-            px: { xs: 1, sm: 2, md: 3 },
-            width: '100%',
-            maxWidth: '100vw'
-          }}
-        >
-          <IconButton 
-            color="inherit" 
-            onClick={() => navigate('/gallery')}
-            sx={{ mr: 1 }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              flexGrow: 1,
-              fontSize: { xs: '1rem', sm: '1.15rem', md: '1.25rem' },
-              fontWeight: 500,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            📅 {folderDisplayName}
-          </Typography>
-          
-          {/* Multi-Select Toggle */}
-          <Button 
-            color="inherit"
-            onClick={() => setSelectionMode(!selectionMode)}
-            sx={{
-              p: { xs: 1, sm: 1.5 },
-              fontSize: { xs: '0.8rem', sm: '0.9rem' },
-              fontWeight: 500,
-              textTransform: 'none',
-              minWidth: 'auto'
-            }}
-          >
-            {selectionMode ? 'Abbrechen' : 'Auswählen'}
-          </Button>
-        </Toolbar>
-      </AppBar>
+      {/* Freistehende Buttons */}
+      <IconButton 
+        onClick={() => navigate('/gallery')}
+        sx={{
+          position: 'fixed',
+          top: { xs: 16, sm: 20 },
+          left: { xs: 16, sm: 20 },
+          zIndex: 1000,
+          width: { xs: 48, sm: 56 },
+          height: { xs: 48, sm: 56 },
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          color: '#fff',
+          backdropFilter: 'blur(8px)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          '&:hover': { 
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            transform: 'scale(1.05)'
+          },
+          transition: 'all 0.2s'
+        }}
+      >
+        <ArrowBackIcon sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
+      </IconButton>
+      
+      <Button 
+        onClick={() => setSelectionMode(!selectionMode)}
+        sx={{
+          position: 'fixed',
+          top: { xs: 16, sm: 20 },
+          right: { xs: 16, sm: 20 },
+          zIndex: 1000,
+          px: { xs: 2, sm: 3 },
+          py: { xs: 1, sm: 1.5 },
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          color: '#fff',
+          backdropFilter: 'blur(8px)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          borderRadius: 2,
+          fontSize: { xs: '0.8rem', sm: '0.9rem' },
+          fontWeight: 500,
+          textTransform: 'none',
+          '&:hover': { 
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            transform: 'scale(1.05)'
+          },
+          transition: 'all 0.2s'
+        }}
+      >
+        {selectionMode ? 'Abbrechen' : 'Auswählen'}
+      </Button>
       
       <Box 
         sx={{ 
           flex: 1,
           p: { xs: 1, sm: 2, md: 3 },
           maxWidth: '100vw',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          pt: { xs: 8, sm: 10 } // Platz für die freistehenden Buttons
         }}
       >
         {/* Breadcrumb Navigation */}

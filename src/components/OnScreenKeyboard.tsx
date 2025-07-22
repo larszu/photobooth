@@ -22,6 +22,8 @@ interface OnScreenKeyboardProps {
   onEnter: () => void;
   onClose: () => void;
   position?: 'bottom' | 'top';
+  avoidCollision?: boolean; // Verhindert Überlappung mit wichtigen UI-Elementen
+  maxHeightPercent?: number; // Maximale Höhe als Prozent des Viewports
 }
 
 const OnScreenKeyboard: React.FC<OnScreenKeyboardProps> = ({
@@ -30,7 +32,9 @@ const OnScreenKeyboard: React.FC<OnScreenKeyboardProps> = ({
   onBackspace,
   onEnter,
   onClose,
-  position = 'bottom'
+  position = 'bottom',
+  avoidCollision = true,
+  maxHeightPercent = 35
 }) => {
   const [isShift, setIsShift] = useState(false);
   const [isCapsLock, setIsCapsLock] = useState(false);
@@ -106,14 +110,32 @@ const OnScreenKeyboard: React.FC<OnScreenKeyboardProps> = ({
     position: 'fixed' as const,
     left: 0,
     right: 0,
-    [position]: 0,
+    width: '100%',
+    [position]: avoidCollision ? { xs: '8px', sm: '12px', md: '16px' } : 0,
     zIndex: 9999,
     backgroundColor: '#f5f5f5',
     border: '1px solid #ddd',
     borderRadius: position === 'bottom' ? '12px 12px 0 0' : '0 0 12px 12px',
-    padding: '8px',
-    maxHeight: '40vh',
-    overflow: 'hidden'
+    padding: { xs: '4px', sm: '8px', md: '12px' },
+    maxHeight: { 
+      xs: `${Math.min(maxHeightPercent + 10, 50)}vh`, 
+      sm: `${Math.min(maxHeightPercent + 5, 45)}vh`, 
+      md: `${maxHeightPercent}vh` 
+    },
+    overflow: 'hidden',
+    // Responsive Container
+    boxSizing: 'border-box' as const,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    // Schatten für bessere Sichtbarkeit
+    boxShadow: '0 -4px 20px rgba(0,0,0,0.15)',
+    // Smart positioning to avoid UI collision
+    ...(avoidCollision && position === 'bottom' && {
+      marginBottom: { xs: '0px', sm: '8px', md: '16px' }
+    }),
+    ...(avoidCollision && position === 'top' && {
+      marginTop: { xs: '0px', sm: '8px', md: '16px' }
+    })
   };
 
   if (!isVisible) return null;
@@ -126,22 +148,36 @@ const OnScreenKeyboard: React.FC<OnScreenKeyboardProps> = ({
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'center', 
-          mb: 1,
-          px: 1
+          mb: { xs: 0.5, sm: 1, md: 1 },
+          px: { xs: 0.5, sm: 1, md: 1 }
         }}>
-          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-            <KeyboardIcon sx={{ fontSize: '1rem', mr: 0.5, verticalAlign: 'middle' }} />
-            QWERTZ Tastatur
+          <Typography variant="body2" color="text.secondary" sx={{ 
+            fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.9rem' },
+            display: 'flex',
+            alignItems: 'center'
+          }}>
+            <KeyboardIcon sx={{ 
+              fontSize: { xs: '0.9rem', sm: '1rem', md: '1.1rem' }, 
+              mr: 0.5, 
+              verticalAlign: 'middle' 
+            }} />
+            <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+              QWERTZ Tastatur
+            </Box>
+            <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
+              QWERTZ
+            </Box>
           </Typography>
-          <Box sx={{ display: 'flex', gap: 0.5 }}>
+          <Box sx={{ display: 'flex', gap: { xs: 0.3, sm: 0.5, md: 0.5 } }}>
             <IconButton 
               onClick={() => setIsMinimized(!isMinimized)} 
               size="small"
               sx={{ 
                 backgroundColor: '#e0e0e0',
                 '&:hover': { backgroundColor: '#d0d0d0' },
-                width: 28,
-                height: 28
+                width: { xs: 24, sm: 28, md: 32 },
+                height: { xs: 24, sm: 28, md: 32 },
+                fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.9rem' }
               }}
               title={isMinimized ? "Tastatur erweitern" : "Tastatur minimieren"}
             >
@@ -153,8 +189,9 @@ const OnScreenKeyboard: React.FC<OnScreenKeyboardProps> = ({
               sx={{ 
                 backgroundColor: '#ffcdd2',
                 '&:hover': { backgroundColor: '#f8bbd9' },
-                width: 28,
-                height: 28
+                width: { xs: 24, sm: 28, md: 32 },
+                height: { xs: 24, sm: 28, md: 32 },
+                fontSize: { xs: '0.8rem', sm: '0.9rem', md: '1rem' }
               }}
               title="Tastatur schließen"
             >
@@ -165,13 +202,19 @@ const OnScreenKeyboard: React.FC<OnScreenKeyboardProps> = ({
 
         {/* Tastatur-Layout (nur wenn nicht minimiert) */}
         {!isMinimized && (
-          <Box sx={{ userSelect: 'none' }}>
+          <Box sx={{ 
+            userSelect: 'none',
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: { xs: '2px', sm: '3px', md: '4px' }
+          }}>
             {keyboardLayout.map((row, rowIndex) => (
             <Box key={rowIndex} sx={{ 
               display: 'flex', 
-              justifyContent: 'center',
-              gap: '2px',
-              mb: '2px'
+              justifyContent: 'space-between',
+              gap: { xs: '1px', sm: '2px', md: '3px' },
+              width: '100%'
             }}>
               {/* Spezielle Tasten für bestimmte Reihen */}
               {rowIndex === 2 && (
@@ -179,12 +222,13 @@ const OnScreenKeyboard: React.FC<OnScreenKeyboardProps> = ({
                   variant={isCapsLock ? 'contained' : 'outlined'}
                   onClick={handleCapsLock}
                   sx={{ 
-                    minWidth: '50px',
-                    height: '35px',
-                    fontSize: '0.7rem',
+                    minWidth: { xs: '50px', sm: '60px', md: '80px' },
+                    height: { xs: '48px', sm: '56px', md: '64px' },
+                    fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.9rem' },
                     backgroundColor: isCapsLock ? '#2196f3' : 'white',
                     color: isCapsLock ? 'white' : 'black',
-                    border: '1px solid #ccc'
+                    border: '1px solid #ccc',
+                    flex: 'none'
                   }}
                 >
                   CAPS
@@ -196,53 +240,67 @@ const OnScreenKeyboard: React.FC<OnScreenKeyboardProps> = ({
                   variant={isShift ? 'contained' : 'outlined'}
                   onClick={handleShift}
                   sx={{ 
-                    minWidth: '60px',
-                    height: '35px',
-                    fontSize: '0.7rem',
+                    minWidth: { xs: '60px', sm: '70px', md: '90px' },
+                    height: { xs: '48px', sm: '56px', md: '64px' },
+                    fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.9rem' },
                     backgroundColor: isShift ? '#2196f3' : 'white',
                     color: isShift ? 'white' : 'black',
-                    border: '1px solid #ccc'
+                    border: '1px solid #ccc',
+                    flex: 'none'
                   }}
                 >
-                  <ShiftIcon sx={{ fontSize: '1rem' }} />
+                  <ShiftIcon sx={{ fontSize: { xs: '1rem', sm: '1.1rem', md: '1.3rem' } }} />
                 </Button>
               )}
 
-              {/* Normale Tasten */}
-              {row.map((key, keyIndex) => (
-                <Button
-                  key={`${rowIndex}-${keyIndex}`}
-                  variant="outlined"
-                  onClick={() => handleKeyPress(key)}
-                  sx={{
-                    minWidth: '30px',
-                    width: '30px',
-                    height: '35px',
-                    fontSize: '0.8rem',
-                    backgroundColor: 'white',
-                    color: 'black',
-                    border: '1px solid #ccc',
-                    '&:hover': {
-                      backgroundColor: '#f0f0f0'
-                    },
-                    '&:active': {
-                      backgroundColor: '#e0e0e0'
-                    }
-                  }}
-                >
-                  {/* Zeige Shift-Variante falls aktiviert */}
-                  {isShift ? (
-                    // Zahlenreihe
-                    rowIndex === 0 && /^[0-9ß´]$/.test(key) ? 
-                      shiftNumbers[['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'ß', '´'].indexOf(key)] :
-                    // Sonderzeichen
-                    shiftSpecial[key] || key.toUpperCase()
-                  ) : (
-                    // Normale Anzeige (Caps Lock nur für Buchstaben)
-                    isCapsLock && /^[a-zäöü]$/.test(key) ? key.toUpperCase() : key
-                  )}
-                </Button>
-              ))}
+              {/* Container für normale Tasten - nimmt den verfügbaren Platz ein */}
+              <Box sx={{ 
+                display: 'flex', 
+                flex: 1, 
+                gap: { xs: '1px', sm: '2px', md: '3px' },
+                justifyContent: 'space-between'
+              }}>
+                {/* Normale Tasten */}
+                {row.map((key, keyIndex) => (
+                  <Button
+                    key={`${rowIndex}-${keyIndex}`}
+                    variant="outlined"
+                    onClick={() => handleKeyPress(key)}
+                    sx={{
+                      flex: 1,
+                      minWidth: { xs: '24px', sm: '30px', md: '40px' },
+                      height: { xs: '48px', sm: '56px', md: '64px' },
+                      fontSize: { xs: '0.8rem', sm: '0.9rem', md: '1.1rem' },
+                      backgroundColor: 'white',
+                      color: 'black',
+                      border: '1px solid #ccc',
+                      '&:hover': {
+                        backgroundColor: '#f0f0f0'
+                      },
+                      '&:active': {
+                        backgroundColor: '#e0e0e0'
+                      },
+                      // Responsive text sizing
+                      '& .MuiButton-label': {
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden'
+                      }
+                    }}
+                  >
+                    {/* Zeige Shift-Variante falls aktiviert */}
+                    {isShift ? (
+                      // Zahlenreihe
+                      rowIndex === 0 && /^[0-9ß´]$/.test(key) ? 
+                        shiftNumbers[['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'ß', '´'].indexOf(key)] :
+                      // Sonderzeichen
+                      shiftSpecial[key] || key.toUpperCase()
+                    ) : (
+                      // Normale Anzeige (Caps Lock nur für Buchstaben)
+                      isCapsLock && /^[a-zäöü]$/.test(key) ? key.toUpperCase() : key
+                    )}
+                  </Button>
+                ))}
+              </Box>
 
               {/* Backspace für erste Reihe */}
               {rowIndex === 0 && (
@@ -250,18 +308,19 @@ const OnScreenKeyboard: React.FC<OnScreenKeyboardProps> = ({
                   variant="outlined"
                   onClick={onBackspace}
                   sx={{ 
-                    minWidth: '50px',
-                    height: '35px',
-                    fontSize: '0.7rem',
+                    minWidth: { xs: '55px', sm: '65px', md: '80px' },
+                    height: { xs: '48px', sm: '56px', md: '64px' },
+                    fontSize: { xs: '0.7rem', sm: '0.8rem', md: '1rem' },
                     backgroundColor: '#ffebee',
                     border: '1px solid #f44336',
                     color: '#f44336',
+                    flex: 'none',
                     '&:hover': {
                       backgroundColor: '#ffcdd2'
                     }
                   }}
                 >
-                  <BackspaceIcon sx={{ fontSize: '1rem' }} />
+                  <BackspaceIcon sx={{ fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.5rem' } }} />
                 </Button>
               )}
 
@@ -271,18 +330,19 @@ const OnScreenKeyboard: React.FC<OnScreenKeyboardProps> = ({
                   variant="outlined"
                   onClick={onEnter}
                   sx={{ 
-                    minWidth: '50px',
-                    height: '35px',
-                    fontSize: '0.7rem',
+                    minWidth: { xs: '55px', sm: '65px', md: '80px' },
+                    height: { xs: '48px', sm: '56px', md: '64px' },
+                    fontSize: { xs: '0.7rem', sm: '0.8rem', md: '1rem' },
                     backgroundColor: '#e8f5e8',
                     border: '1px solid #4caf50',
                     color: '#4caf50',
+                    flex: 'none',
                     '&:hover': {
                       backgroundColor: '#c8e6c9'
                     }
                   }}
                 >
-                  <EnterIcon sx={{ fontSize: '1rem' }} />
+                  <EnterIcon sx={{ fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.5rem' } }} />
                 </Button>
               )}
             </Box>
@@ -291,19 +351,21 @@ const OnScreenKeyboard: React.FC<OnScreenKeyboardProps> = ({
           {/* Letzte Reihe mit Leertaste */}
           <Box sx={{ 
             display: 'flex', 
-            justifyContent: 'center',
-            gap: '2px',
-            mt: '2px'
+            justifyContent: 'space-between',
+            gap: { xs: '2px', sm: '3px', md: '4px' },
+            width: '100%',
+            mt: { xs: '2px', sm: '3px', md: '4px' }
           }}>
             <Button
               variant="outlined"
               onClick={() => handleKeyPress('@')}
               sx={{
-                minWidth: '40px',
-                height: '35px',
-                fontSize: '0.8rem',
+                minWidth: { xs: '35px', sm: '40px', md: '50px' },
+                height: { xs: '40px', sm: '45px', md: '50px' },
+                fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.9rem' },
                 backgroundColor: 'white',
-                border: '1px solid #ccc'
+                border: '1px solid #ccc',
+                flex: 'none'
               }}
             >
               @
@@ -312,27 +374,29 @@ const OnScreenKeyboard: React.FC<OnScreenKeyboardProps> = ({
               variant="outlined"
               onClick={() => handleKeyPress(' ')}
               sx={{
-                minWidth: '200px',
-                height: '35px',
-                fontSize: '0.7rem',
+                flex: 1,
+                height: { xs: '48px', sm: '56px', md: '64px' },
+                fontSize: { xs: '0.7rem', sm: '0.8rem', md: '1rem' },
                 backgroundColor: '#f9f9f9',
                 border: '1px solid #ccc',
+                mx: { xs: '4px', sm: '6px', md: '8px' },
                 '&:hover': {
                   backgroundColor: '#f0f0f0'
                 }
               }}
             >
-              <SpaceBarIcon sx={{ fontSize: '1rem' }} />
+              <SpaceBarIcon sx={{ fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.5rem' } }} />
             </Button>
             <Button
               variant="outlined"
               onClick={() => handleKeyPress('.')}
               sx={{
-                minWidth: '40px',
-                height: '35px',
-                fontSize: '0.8rem',
+                minWidth: { xs: '45px', sm: '55px', md: '70px' },
+                height: { xs: '48px', sm: '56px', md: '64px' },
+                fontSize: { xs: '0.8rem', sm: '0.9rem', md: '1.1rem' },
                 backgroundColor: 'white',
-                border: '1px solid #ccc'
+                border: '1px solid #ccc',
+                flex: 'none'
               }}
             >
               .

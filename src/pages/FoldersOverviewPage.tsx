@@ -8,8 +8,6 @@ import {
   CardMedia, 
   CardContent,
   CircularProgress, 
-  AppBar, 
-  Toolbar, 
   IconButton, 
   Button,
   Chip,
@@ -223,65 +221,68 @@ const FoldersOverviewPage: React.FC = () => {
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <AppBar position="static" color="primary">
-        <Toolbar 
-          sx={{ 
-            minHeight: { xs: 56, sm: 64 },
-            px: { xs: 1, sm: 2, md: 3 },
-            width: '100%',
-            maxWidth: '100vw'
+      {/* Freistehende Buttons oben rechts */}
+      <Box
+        sx={{
+          position: 'fixed',
+          top: { xs: 16, sm: 20 },
+          right: { xs: 16, sm: 20 },
+          zIndex: 1000,
+          display: 'flex',
+          gap: { xs: 1, sm: 2 }
+        }}
+      >
+        {/* Multi-Select Toggle */}
+        <Button 
+          onClick={() => setSelectionMode(!selectionMode)}
+          sx={{
+            px: { xs: 2, sm: 3 },
+            py: { xs: 1, sm: 1.5 },
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            color: '#fff',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            borderRadius: 2,
+            fontSize: { xs: '0.8rem', sm: '0.9rem' },
+            fontWeight: 500,
+            textTransform: 'none',
+            '&:hover': { 
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              transform: 'scale(1.05)'
+            },
+            transition: 'all 0.2s'
           }}
         >
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              flexGrow: 1,
-              fontSize: { xs: '1rem', sm: '1.15rem', md: '1.25rem' },
-              fontWeight: 500,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            📁 Foto-Ordner
-          </Typography>
-          
-          {/* Multi-Select Toggle */}
-          <Button 
-            color="inherit"
-            onClick={() => setSelectionMode(!selectionMode)}
-            sx={{
-              p: { xs: 1, sm: 1.5 },
-              fontSize: { xs: '0.8rem', sm: '0.9rem' },
-              fontWeight: 500,
-              textTransform: 'none',
-              minWidth: 'auto'
-            }}
-          >
-            {selectionMode ? 'Abbrechen' : 'Auswählen'}
-          </Button>
-          
-          <IconButton 
-            color="inherit" 
-            onClick={() => navigate('/admin')}
-            sx={{
-              p: { xs: 1, sm: 1.5 },
-              '& .MuiSvgIcon-root': {
-                fontSize: { xs: '1.2rem', sm: '1.5rem' }
-              }
-            }}
-          >
-            <AdminPanelSettingsIcon />
-          </IconButton>
-        </Toolbar>
-      </AppBar>
+          {selectionMode ? 'Abbrechen' : 'Auswählen'}
+        </Button>
+        
+        <IconButton 
+          onClick={() => navigate('/admin')}
+          sx={{
+            width: { xs: 48, sm: 56 },
+            height: { xs: 48, sm: 56 },
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            color: '#fff',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            '&:hover': { 
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              transform: 'scale(1.05)'
+            },
+            transition: 'all 0.2s'
+          }}
+        >
+          <AdminPanelSettingsIcon sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
+        </IconButton>
+      </Box>
       
       <Box 
         sx={{ 
           flex: 1,
           p: { xs: 1, sm: 2, md: 3 },
           maxWidth: '100vw',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          pt: { xs: 8, sm: 10 } // Platz für die freistehenden Buttons
         }}
       >
         {loading ? (
@@ -290,32 +291,6 @@ const FoldersOverviewPage: React.FC = () => {
           </Box>
         ) : (
           <>
-            {/* Schnellzugriff: Alle Fotos anzeigen */}
-            <Card 
-              sx={{ 
-                mb: 3,
-                borderRadius: { xs: 2, md: 3 },
-                background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
-                color: 'white'
-              }}
-            >
-              <CardActionArea onClick={handleViewAllPhotos}>
-                <CardContent sx={{ py: { xs: 2, md: 3 } }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <PhotoLibraryIcon sx={{ fontSize: { xs: '2rem', md: '2.5rem' } }} />
-                    <Box>
-                      <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                        Alle Fotos anzeigen
-                      </Typography>
-                      <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                        Alle Fotos aus allen Tagen in einer Galerie
-                      </Typography>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </CardActionArea>
-            </Card>
-
             {folders.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 8 }}>
                 <FolderIcon sx={{ fontSize: '4rem', mb: 2, opacity: 0.3 }} />
@@ -330,54 +305,79 @@ const FoldersOverviewPage: React.FC = () => {
               <>
                 <Box sx={{ 
                   display: 'flex', 
-                  justifyContent: 'space-between', 
+                  justifyContent: 'flex-start', // Links ausrichten statt space-between
                   alignItems: 'center',
-                  mb: 3 
+                  mb: 3,
+                  gap: 3 // Direkter Abstand zwischen Text und Buttons
                 }}>
                   <Typography variant="h5" sx={{ fontWeight: 600 }}>
                     Fotos nach Tagen
                   </Typography>
                   
-                  <ToggleButtonGroup
-                    value={sortOrder}
-                    exclusive
-                    onChange={handleSortChange}
-                    aria-label="Sortierung"
-                    size="small"
-                    sx={{ 
-                      '& .MuiToggleButton-root': {
+                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                    <ToggleButtonGroup
+                      value={sortOrder}
+                      exclusive
+                      onChange={handleSortChange}
+                      aria-label="Sortierung"
+                      size="small"
+                      sx={{ 
+                        '& .MuiToggleButton-root': {
+                          px: { xs: 1.5, md: 2 },
+                          py: { xs: 0.5, md: 1 },
+                          border: '1px solid',
+                          borderColor: 'primary.main',
+                          color: 'primary.main',
+                          '&.Mui-selected': {
+                            backgroundColor: 'primary.main',
+                            color: 'white',
+                            '&:hover': {
+                              backgroundColor: 'primary.dark',
+                            },
+                          },
+                          '&:hover': {
+                            backgroundColor: 'primary.light',
+                            color: 'white',
+                          },
+                        }
+                      }}
+                    >
+                      <ToggleButton value="desc" aria-label="Neueste zuerst">
+                        <ArrowDownwardIcon fontSize="small" sx={{ mr: 0.5 }} />
+                        <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                          Neueste
+                        </Typography>
+                      </ToggleButton>
+                      <ToggleButton value="asc" aria-label="Älteste zuerst">
+                        <ArrowUpwardIcon fontSize="small" sx={{ mr: 0.5 }} />
+                        <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                          Älteste
+                        </Typography>
+                      </ToggleButton>
+                    </ToggleButtonGroup>
+                    
+                    <Button
+                      onClick={handleViewAllPhotos}
+                      variant="outlined"
+                      size="medium"
+                      sx={{ 
                         px: { xs: 1.5, md: 2 },
                         py: { xs: 0.5, md: 1 },
                         border: '1px solid',
                         borderColor: 'primary.main',
                         color: 'primary.main',
-                        '&.Mui-selected': {
-                          backgroundColor: 'primary.main',
-                          color: 'white',
-                          '&:hover': {
-                            backgroundColor: 'primary.dark',
-                          },
-                        },
                         '&:hover': {
                           backgroundColor: 'primary.light',
                           color: 'white',
                         },
-                      }
-                    }}
-                  >
-                    <ToggleButton value="desc" aria-label="Neueste zuerst">
-                      <ArrowDownwardIcon fontSize="small" sx={{ mr: 0.5 }} />
-                      <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-                        Neueste
+                      }}
+                    >
+                      <PhotoLibraryIcon fontSize="small" sx={{ mr: 0.5 }} />
+                      <Typography variant="body2">
+                        Alle Fotos anzeigen
                       </Typography>
-                    </ToggleButton>
-                    <ToggleButton value="asc" aria-label="Älteste zuerst">
-                      <ArrowUpwardIcon fontSize="small" sx={{ mr: 0.5 }} />
-                      <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-                        Älteste
-                      </Typography>
-                    </ToggleButton>
-                  </ToggleButtonGroup>
+                    </Button>
+                  </Box>
                 </Box>
                 
                 <Box 
