@@ -132,7 +132,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           px: 2,
           py: { xs: 2, sm: 3, md: 4 },
           // Ganzer Container bewegt sich nach oben bei Tastatur
-          transform: isAnyKeyboardVisible ? 'translateY(-120px)' : 'translateY(0)',
+          transform: isAnyKeyboardVisible ? 'translateY(-90px)' : 'translateY(0)',
           transition: 'transform 0.3s ease-in-out',
           // Sorge dafür, dass es vollständig den Viewport ausfüllt
           margin: 0,
@@ -231,7 +231,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       </Card>
       </Box>
 
-      {/* OnScreenKeyboards - kompakt für Login-Seite, außerhalb der Box */}
+      {/* OnScreenKeyboards - kompakter für Login-Seite, außerhalb der Box */}
       <OnScreenKeyboard
         isVisible={usernameKeyboard.isKeyboardVisible}
         onKeyPress={usernameKeyboard.handleKeyPress}
@@ -240,7 +240,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         onClose={usernameKeyboard.hideKeyboard}
         position="bottom"
         avoidCollision={true}
-        maxHeightPercent={30}
+        maxHeightPercent={50}
       />
       
       <OnScreenKeyboard
@@ -251,7 +251,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         onClose={passwordKeyboard.hideKeyboard}
         position="bottom"
         avoidCollision={true}
-        maxHeightPercent={30}
+        maxHeightPercent={50}
       />
     </>
   );

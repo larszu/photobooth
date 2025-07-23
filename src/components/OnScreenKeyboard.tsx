@@ -98,11 +98,11 @@ const OnScreenKeyboard: React.FC<OnScreenKeyboardProps> = ({
     right: 0,
     width: '100%',
     [position]: avoidCollision ? '8px' : 0,
-    zIndex: 9999,
+    zIndex: 999999, // Höchster z-index um sicherzustellen, dass Tastatur über allem liegt
     backgroundColor: '#f5f5f5',
     border: '1px solid #ddd',
     borderRadius: position === 'bottom' ? '12px 12px 0 0' : '0 0 12px 12px',
-    padding: { xs: '6px', sm: '8px', md: '10px' },
+    padding: { xs: '2px', sm: '3px', md: '4px' }, // Reduziertes Padding
     maxHeight: `${maxHeightPercent}vh`,
     overflow: 'hidden',
     boxSizing: 'border-box' as const,
@@ -118,7 +118,7 @@ const OnScreenKeyboard: React.FC<OnScreenKeyboardProps> = ({
       <Paper sx={keyboardStyles} elevation={8}>
         <Box sx={{ 
           width: isInConstrainedContainer 
-            ? { xs: '95%', sm: '85%', md: '75%' }  // Schmaler für Container wie LoginPage
+            ? { xs: '98%', sm: '92%', md: '88%' }  // Etwas breiter für Container wie LoginPage
             : '100%', // Volle Breite für Vollbild-Seiten wie AdminPage
           margin: '0 auto',
           display: 'flex',
@@ -129,7 +129,7 @@ const OnScreenKeyboard: React.FC<OnScreenKeyboardProps> = ({
             display: 'flex', 
             justifyContent: 'space-between', 
             alignItems: 'center', 
-            mb: 0.5,
+            mb: 0.2, // Reduzierter Abstand
             px: 0.5
           }}>
             <Typography variant="caption" color="text.secondary">
