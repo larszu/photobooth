@@ -850,8 +850,8 @@ const AdminPage: React.FC = () => {
                   src="/api/logo-upload-qr" 
                   alt="Logo Upload QR" 
                   style={{ 
-                    width: window.innerWidth < 600 ? 100 : 120, 
-                    height: window.innerWidth < 600 ? 100 : 120 
+                    width: window.innerWidth < 600 ? 200 : 240, 
+                    height: window.innerWidth < 600 ? 200 : 240 
                   }} 
                 />
               </Box>
