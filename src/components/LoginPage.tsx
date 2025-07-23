@@ -22,7 +22,6 @@ import {
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import OnScreenKeyboard from './OnScreenKeyboard';
-import { useVirtualKeyboard } from '../hooks/useVirtualKeyboard';
 
 interface LoginPageProps {
   onLoginSuccess?: () => void;
@@ -38,12 +37,54 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const authContext = useContext(AuthContext);
   const navigate = useNavigate();
 
-  // Virtual Keyboard Hooks
-  const usernameKeyboard = useVirtualKeyboard(username, setUsername, { autoShow: false });
-  const passwordKeyboard = useVirtualKeyboard(password, setPassword, { autoShow: false });
+  // Virtual Keyboard Hook - nur eine für beide Felder
+  const [activeField, setActiveField] = useState<'username' | 'password' | null>(null);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
-  // Prüfe ob eine Tastatur sichtbar ist
-  const isAnyKeyboardVisible = usernameKeyboard.isKeyboardVisible || passwordKeyboard.isKeyboardVisible;
+  const handleKeyPress = (key: string) => {
+    if (activeField === 'username') {
+      setUsername(prev => prev + key);
+    } else if (activeField === 'password') {
+      setPassword(prev => prev + key);
+    }
+  };
+
+  const handleBackspace = () => {
+    if (activeField === 'username') {
+      setUsername(prev => prev.slice(0, -1));
+    } else if (activeField === 'password') {
+      setPassword(prev => prev.slice(0, -1));
+    }
+  };
+
+  const handleEnter = () => {
+    if (activeField === 'username') {
+      // Fokussiere Passwort-Feld
+      setActiveField('password');
+    } else if (activeField === 'password') {
+      // Schließe Tastatur und sende Formular
+      setKeyboardVisible(false);
+      setActiveField(null);
+      // Trigger form submit
+      const form = document.querySelector('form');
+      if (form) {
+        form.requestSubmit();
+      }
+    }
+  };
+
+  const showKeyboardForField = (field: 'username' | 'password') => {
+    setActiveField(field);
+    setKeyboardVisible(true);
+  };
+
+  const hideKeyboard = () => {
+    setKeyboardVisible(false);
+    setActiveField(null);
+  };
+
+  // Prüfe ob Tastatur sichtbar ist
+  const isAnyKeyboardVisible = keyboardVisible;
 
   // Deaktiviere Auto-Logout auf der Login-Seite
   useEffect(() => {
@@ -132,7 +173,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           px: 2,
           py: { xs: 2, sm: 3, md: 4 },
           // Ganzer Container bewegt sich nach oben bei Tastatur
-          transform: isAnyKeyboardVisible ? 'translateY(-90px)' : 'translateY(0)',
+          transform: isAnyKeyboardVisible ? 'translateY(-60px)' : 'translateY(0)',
           transition: 'transform 0.3s ease-in-out',
           // Sorge dafür, dass es vollständig den Viewport ausfüllt
           margin: 0,
@@ -181,7 +222,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               autoFocus
               disabled={loading}
               sx={{ mb: 2 }}
-              onFocus={usernameKeyboard.showKeyboard}
+              onFocus={() => showKeyboardForField('username')}
             />
             
             <TextField
@@ -208,7 +249,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 ),
               }}
               sx={{ mb: 3 }}
-              onFocus={passwordKeyboard.showKeyboard}
+              onFocus={() => showKeyboardForField('password')}
             />
 
             <Button
@@ -226,29 +267,23 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             >
               {loading ? 'Anmelden...' : 'Anmelden'}
             </Button>
+            
+            {/* Zusätzlicher Platz wenn Tastatur sichtbar */}
+            {isAnyKeyboardVisible && (
+              <Box sx={{ height: '200px', backgroundColor: 'transparent' }} />
+            )}
           </Box>
         </CardContent>
       </Card>
       </Box>
 
-      {/* OnScreenKeyboards - kompakter für Login-Seite, außerhalb der Box */}
+      {/* OnScreenKeyboard - eine einzige für beide Felder */}
       <OnScreenKeyboard
-        isVisible={usernameKeyboard.isKeyboardVisible}
-        onKeyPress={usernameKeyboard.handleKeyPress}
-        onBackspace={usernameKeyboard.handleBackspace}
-        onEnter={usernameKeyboard.handleEnter}
-        onClose={usernameKeyboard.hideKeyboard}
-        position="bottom"
-        avoidCollision={true}
-        maxHeightPercent={50}
-      />
-      
-      <OnScreenKeyboard
-        isVisible={passwordKeyboard.isKeyboardVisible}
-        onKeyPress={passwordKeyboard.handleKeyPress}
-        onBackspace={passwordKeyboard.handleBackspace}
-        onEnter={passwordKeyboard.handleEnter}
-        onClose={passwordKeyboard.hideKeyboard}
+        isVisible={keyboardVisible}
+        onKeyPress={handleKeyPress}
+        onBackspace={handleBackspace}
+        onEnter={handleEnter}
+        onClose={hideKeyboard}
         position="bottom"
         avoidCollision={true}
         maxHeightPercent={50}

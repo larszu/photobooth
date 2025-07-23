@@ -17,7 +17,6 @@ import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import OnScreenKeyboard from '../components/OnScreenKeyboard';
-import { useVirtualKeyboard } from '../hooks/useVirtualKeyboard';
 
 const AdminPage: React.FC = () => {
   const [ssid, setSsid] = useState('');
@@ -41,10 +40,57 @@ const AdminPage: React.FC = () => {
   const authContext = useContext(AuthContext);
   const { darkMode, toggleDarkMode } = useTheme();
 
-  // Virtual Keyboard Hooks
-  const ssidKeyboard = useVirtualKeyboard(ssid, setSsid, { autoShow: true });
-  const passwordKeyboard = useVirtualKeyboard(password, setPassword, { autoShow: true });
-  const brandingTextKeyboard = useVirtualKeyboard(brandingText, setBrandingText, { autoShow: true });
+  // Virtual Keyboard Hook - eine für alle Felder
+  const [activeField, setActiveField] = useState<'ssid' | 'password' | 'brandingText' | null>(null);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  const handleKeyPress = (key: string) => {
+    if (activeField === 'ssid') {
+      setSsid(prev => prev + key);
+    } else if (activeField === 'password') {
+      setPassword(prev => prev + key);
+    } else if (activeField === 'brandingText') {
+      setBrandingText(prev => prev + key);
+    }
+  };
+
+  const handleBackspace = () => {
+    if (activeField === 'ssid') {
+      setSsid(prev => prev.slice(0, -1));
+    } else if (activeField === 'password') {
+      setPassword(prev => prev.slice(0, -1));
+    } else if (activeField === 'brandingText') {
+      setBrandingText(prev => prev.slice(0, -1));
+    }
+  };
+
+  const handleEnter = () => {
+    if (activeField === 'ssid') {
+      // Wechsle zum Passwort-Feld
+      setActiveField('password');
+    } else if (activeField === 'password') {
+      // Schließe Tastatur
+      setKeyboardVisible(false);
+      setActiveField(null);
+    } else if (activeField === 'brandingText') {
+      // Schließe Tastatur
+      setKeyboardVisible(false);
+      setActiveField(null);
+    }
+  };
+
+  const showKeyboardForField = (field: 'ssid' | 'password' | 'brandingText') => {
+    setActiveField(field);
+    setKeyboardVisible(true);
+  };
+
+  const hideKeyboard = () => {
+    setKeyboardVisible(false);
+    setActiveField(null);
+  };
+
+  // Prüfe ob Tastatur sichtbar ist für Layout-Anpassung
+  const isAnyKeyboardVisible = keyboardVisible;
 
 
 
@@ -351,7 +397,14 @@ const AdminPage: React.FC = () => {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ 
+      minHeight: '100vh', 
+      display: 'flex', 
+      flexDirection: 'column',
+      // Ganzer Container bewegt sich nach oben bei Tastatur
+      transform: isAnyKeyboardVisible ? 'translateY(-90px)' : 'translateY(0)',
+      transition: 'transform 0.3s ease-in-out',
+    }}>
       {/* Freistehende Buttons */}
       <IconButton 
         onClick={() => navigate('/gallery')}
@@ -523,7 +576,7 @@ const AdminPage: React.FC = () => {
               fontSize: { xs: '1rem', md: '1.1rem' }
             }
           }}
-          onFocus={ssidKeyboard.showKeyboard}
+          onFocus={() => showKeyboardForField('ssid')}
         />
         <TextField 
           label="WLAN-Passwort" 
@@ -538,7 +591,7 @@ const AdminPage: React.FC = () => {
               fontSize: { xs: '1rem', md: '1.1rem' }
             }
           }}
-          onFocus={passwordKeyboard.showKeyboard}
+          onFocus={() => showKeyboardForField('password')}
         />
         
         <Box sx={{ 
@@ -802,7 +855,7 @@ const AdminPage: React.FC = () => {
                     fontSize: { xs: '1rem', md: '1.1rem' }
                   }
                 }}
-                onFocus={brandingTextKeyboard.showKeyboard}
+                onFocus={() => showKeyboardForField('brandingText')}
               />
               <Button 
                 variant="contained" 
@@ -1017,38 +1070,16 @@ const AdminPage: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      {/* OnScreenKeyboards */}
+      {/* OnScreenKeyboard - eine einzige für alle Felder */}
       <OnScreenKeyboard
-        isVisible={ssidKeyboard.isKeyboardVisible}
-        onKeyPress={ssidKeyboard.handleKeyPress}
-        onBackspace={ssidKeyboard.handleBackspace}
-        onEnter={ssidKeyboard.handleEnter}
-        onClose={ssidKeyboard.hideKeyboard}
-        position="top"
+        isVisible={keyboardVisible}
+        onKeyPress={handleKeyPress}
+        onBackspace={handleBackspace}
+        onEnter={handleEnter}
+        onClose={hideKeyboard}
+        position="bottom"
         avoidCollision={true}
-        maxHeightPercent={30}
-      />
-      
-      <OnScreenKeyboard
-        isVisible={passwordKeyboard.isKeyboardVisible}
-        onKeyPress={passwordKeyboard.handleKeyPress}
-        onBackspace={passwordKeyboard.handleBackspace}
-        onEnter={passwordKeyboard.handleEnter}
-        onClose={passwordKeyboard.hideKeyboard}
-        position="top"
-        avoidCollision={true}
-        maxHeightPercent={30}
-      />
-      
-      <OnScreenKeyboard
-        isVisible={brandingTextKeyboard.isKeyboardVisible}
-        onKeyPress={brandingTextKeyboard.handleKeyPress}
-        onBackspace={brandingTextKeyboard.handleBackspace}
-        onEnter={brandingTextKeyboard.handleEnter}
-        onClose={brandingTextKeyboard.hideKeyboard}
-        position="top"
-        avoidCollision={true}
-        maxHeightPercent={30}
+        maxHeightPercent={50}
       />
     </Box>
   );
