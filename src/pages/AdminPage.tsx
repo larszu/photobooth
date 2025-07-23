@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { Box, Typography, IconButton, Button, TextField, Snackbar, Alert, ToggleButtonGroup, ToggleButton, Slider, Dialog, DialogTitle, DialogContent, DialogActions, Breadcrumbs, Link, Switch, FormControlLabel } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -91,6 +91,22 @@ const AdminPage: React.FC = () => {
 
   // Prüfe ob Tastatur sichtbar ist für Layout-Anpassung
   const isAnyKeyboardVisible = keyboardVisible;
+
+  // Automatisches Scrollen wenn Tastatur angezeigt wird
+  useEffect(() => {
+    if (isAnyKeyboardVisible) {
+      // Kurze Verzögerung für die Layout-Animation
+      const timer = setTimeout(() => {
+        // Scrolle zum Ende der Seite, damit das untere Ende der Tastatur sichtbar ist
+        window.scrollTo({
+          top: document.documentElement.scrollHeight,
+          behavior: 'smooth'
+        });
+      }, 300); // Etwas länger warten für die Transform-Animation
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isAnyKeyboardVisible]);
 
 
 
@@ -402,7 +418,7 @@ const AdminPage: React.FC = () => {
       display: 'flex', 
       flexDirection: 'column',
       // Ganzer Container bewegt sich nach oben bei Tastatur
-      transform: isAnyKeyboardVisible ? 'translateY(-90px)' : 'translateY(0)',
+      transform: isAnyKeyboardVisible ? 'translateY(-60px)' : 'translateY(0)',
       transition: 'transform 0.3s ease-in-out',
     }}>
       {/* Freistehende Buttons */}
@@ -1031,6 +1047,11 @@ const AdminPage: React.FC = () => {
             Farben speichern
           </Button>
         </Box>
+        )}
+
+        {/* Zusätzlicher Platz wenn Tastatur sichtbar */}
+        {isAnyKeyboardVisible && (
+          <Box sx={{ height: '200px', backgroundColor: 'transparent' }} />
         )}
       </Box>
       
