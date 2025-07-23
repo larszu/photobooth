@@ -389,22 +389,6 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
                     Ihre Fotos ansehen
                   </Typography>
 
-                  {/* Wichtiger WLAN-Hinweis - ÜBER dem QR-Code */}
-                  <Box sx={{ 
-                    mb: 3, 
-                    p: 2, 
-                    backgroundColor: '#fff3cd', 
-                    borderRadius: 2,
-                    border: '2px solid #ffc107'
-                  }}>
-                    <Typography variant="body2" fontWeight="bold" color="#856404" sx={{ textAlign: 'center' }}>
-                      ⚠️ WICHTIG: Stellen Sie sicher, dass Sie mit dem Fotobox-WLAN verbunden sind!
-                    </Typography>
-                    <Typography variant="caption" color="#856404" sx={{ textAlign: 'center', display: 'block', mt: 1 }}>
-                      Ohne WLAN-Verbindung zur Fotobox können Sie die Fotos nicht laden
-                    </Typography>
-                  </Box>
-
                   {shareData.galleryQrCode && renderQrCode(
                     shareData.galleryQrCode,
                     '',
@@ -426,6 +410,21 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
                   >
                     WLAN-Einstellungen
                   </Button>
+
+                  {/* Hinweis */}
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary" 
+                    sx={{ 
+                      mt: -2, 
+                      mb: 3,
+                      fontStyle: 'italic',
+                      textAlign: 'center',
+                      px: 2
+                    }}
+                  >
+                    Hinweis: Ohne WLAN-Verbindung zur Fotobox können Sie die Fotos nicht laden
+                  </Typography>
 
                   {/* Ausklappbare Anleitung für Galerie QR-Code */}
                   <Box sx={{ mt: 3 }}>
@@ -450,12 +449,12 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
                         sx={{ 
                           mt: 2,
                           p: 3, 
-                          backgroundColor: '#f0f9f0', 
+                          backgroundColor: '#f5f5f5', 
                           borderRadius: 2,
-                          border: '1px solid #d0e7d0'
+                          border: '1px solid #e0e0e0'
                         }}
                       >
-                        <Typography variant="body2" fontWeight="bold" mb={2} color="success.main">
+                        <Typography variant="body2" fontWeight="bold" mb={2} color="text.secondary">
                           So öffnen Sie die Fotogalerie:
                         </Typography>
                         
