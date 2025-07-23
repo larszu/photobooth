@@ -44,9 +44,11 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
   const [showGalleryStep, setShowGalleryStep] = useState(false);
   const [showWifiHelp, setShowWifiHelp] = useState(false);
   const [showGalleryHelp, setShowGalleryHelp] = useState(false);
+  const [showManualUrl, setShowManualUrl] = useState(false);
   
   const wifiHelpRef = useRef<HTMLDivElement>(null);
   const galleryHelpRef = useRef<HTMLDivElement>(null);
+  const manualUrlRef = useRef<HTMLDivElement>(null);
   
   // Mode ist immer 'manual' - kein Toggle mehr
   const mode = 'manual';
@@ -95,6 +97,7 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
     setShowGalleryStep(false); // Reset gallery step
     setShowWifiHelp(false); // Reset help states
     setShowGalleryHelp(false);
+    setShowManualUrl(false);
     onClose();
   };
 
@@ -117,6 +120,19 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
       // Scroll nach kurzer Verzögerung, damit das Element erst gerendert wird
       setTimeout(() => {
         galleryHelpRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+      }, 100);
+    }
+  };
+
+  const handleManualUrlToggle = () => {
+    setShowManualUrl(!showManualUrl);
+    if (!showManualUrl) {
+      // Scroll nach kurzer Verzögerung, damit das Element erst gerendert wird
+      setTimeout(() => {
+        manualUrlRef.current?.scrollIntoView({ 
           behavior: 'smooth', 
           block: 'center' 
         });
@@ -383,26 +399,6 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
                   >
                     WLAN-Einstellungen
                   </Button>
-                  
-                  {/* Galerie URL */}
-                  <Box sx={{ mb: 3 }}>
-                    <Typography variant="body2" color="text.secondary" mb={1}>
-                      Alternativ: Link manuell eingeben oder weiterleiten
-                    </Typography>
-                    <Typography 
-                      variant="body1" 
-                      fontWeight="bold" 
-                      sx={{ 
-                        fontFamily: 'monospace',
-                        backgroundColor: '#f5f5f5',
-                        p: 1,
-                        borderRadius: 1,
-                        wordBreak: 'break-all'
-                      }}
-                    >
-                      {shareData.shareUrl}
-                    </Typography>
-                  </Box>
 
                   {/* Ausklappbare Anleitung für Galerie QR-Code */}
                   <Box sx={{ mt: 3 }}>
@@ -469,6 +465,57 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
                             • Oder senden Sie den Link per WhatsApp an sich selbst
                           </Typography>
                         </Box>
+                      </Box>
+                    )}
+                  </Box>
+                  
+                  {/* Ausklappbare Galerie URL - ganz unten */}
+                  <Box sx={{ mt: 2 }}>
+                    <Button
+                      variant="text"
+                      onClick={handleManualUrlToggle}
+                      sx={{
+                        color: 'text.secondary',
+                        fontSize: '0.8rem',
+                        textTransform: 'none',
+                        mb: 1,
+                        '&:hover': {
+                          backgroundColor: 'rgba(0,0,0,0.04)'
+                        }
+                      }}
+                    >
+                      {showManualUrl ? '▼ Link ausblenden' : '▶ Link manuell eingeben'}
+                    </Button>
+                    
+                    {showManualUrl && (
+                      <Box 
+                        ref={manualUrlRef}
+                        sx={{ 
+                          mt: 1,
+                          p: 2, 
+                          backgroundColor: '#f8f9fa', 
+                          borderRadius: 2,
+                          border: '1px solid #e9ecef'
+                        }}
+                      >
+                        <Typography variant="body2" color="text.secondary" mb={1} sx={{ fontSize: '0.8rem' }}>
+                          Für technische Nutzer: Link zum Weiterleiten oder manuell eingeben
+                        </Typography>
+                        <Typography 
+                          variant="body1" 
+                          fontWeight="bold" 
+                          sx={{ 
+                            fontFamily: 'monospace',
+                            backgroundColor: '#ffffff',
+                            p: 1.5,
+                            borderRadius: 1,
+                            border: '1px solid #dee2e6',
+                            wordBreak: 'break-all',
+                            fontSize: '0.9rem'
+                          }}
+                        >
+                          {shareData.shareUrl}
+                        </Typography>
                       </Box>
                     )}
                   </Box>
