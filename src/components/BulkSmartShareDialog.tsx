@@ -32,6 +32,7 @@ interface BulkShareData {
     enabled: boolean;
     ssid: string;
     hasPassword: boolean;
+    password?: string; // Echtes Passwort hinzufügen
   };
   photos: Array<{
     id: string;
@@ -47,6 +48,7 @@ interface WifiStatus {
     enabled: boolean;
     ssid: string;
     hasPassword: boolean;
+    password?: string; // Echtes Passwort hinzufügen
   };
 }
 
@@ -187,41 +189,6 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
     );
   };
 
-  const renderManualUrl = () => {
-    if (!shareData) return null;
-
-    return (
-      <Box sx={{
-        backgroundColor: '#f8f9fa',
-        borderRadius: 2,
-        p: 2,
-        border: '1px solid #e9ecef',
-        mt: 3
-      }}>
-        <Typography variant="caption" color="text.secondary" display="block" mb={1}>
-          Oder Link manuell teilen:
-        </Typography>
-        <Typography 
-          variant="body2" 
-          sx={{ 
-            fontFamily: 'monospace',
-            wordBreak: 'break-all',
-            cursor: 'pointer',
-            '&:hover': { backgroundColor: '#e9ecef' },
-            p: 1,
-            borderRadius: 1
-          }}
-          onClick={() => {
-            navigator.clipboard.writeText(shareData.shareUrl);
-            // TODO: Zeige Bestätigung
-          }}
-        >
-          {shareData.shareUrl}
-        </Typography>
-      </Box>
-    );
-  };
-
   return (
     <Dialog 
       open={open} 
@@ -237,34 +204,26 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
       }}
     >
       <DialogContent sx={{ p: 0 }}>
-        <Box sx={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white',
-          p: 3,
-          position: 'relative'
-        }}>
+        <Box sx={{ position: 'relative' }}>
           <IconButton
             onClick={handleClose}
             sx={{
               position: 'absolute',
               top: 16,
               right: 16,
-              color: 'white',
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              zIndex: 1,
+              color: 'primary.main',
+              backgroundColor: 'white',
+              border: '2px solid',
+              borderColor: 'primary.main',
               '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.2)'
+                backgroundColor: 'primary.main',
+                color: 'white'
               }
             }}
           >
             <CloseIcon />
           </IconButton>
-          
-          <Typography variant="h5" fontWeight="bold" textAlign="center" mb={1}>
-            Bulk Smart Share
-          </Typography>
-          <Typography variant="body2" textAlign="center" sx={{ opacity: 0.9 }}>
-            Mehrere Fotos gleichzeitig teilen
-          </Typography>
         </Box>
 
         <Box sx={{ p: 4 }}>
@@ -309,20 +268,32 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
                 <Box sx={{ textAlign: 'center' }}>
                   {shareData.wifiConfig.enabled && shareData.wifiQrCode ? (
                     <Box>
-                      <Typography variant="h6" fontWeight="bold" mb={2} color="primary.main">
-                        1. WLAN verbinden
+                      <Typography variant="h6" fontWeight="bold" mb={3} color="primary.main">
+                        Schritt 1:<br />
+                        WLAN Verbindung mit der Fotobox herstellen
                       </Typography>
                       {renderQrCode(
                         shareData.wifiQrCode,
-                        'WLAN-Verbindung',
-                        `Mit "${shareData.wifiConfig.ssid}" verbinden`
+                        '',
+                        ''
                       )}
+                      
+                      {/* WLAN Details */}
+                      <Box sx={{ mt: 2, mb: 3 }}>
+                        <Typography variant="body1" fontWeight="bold" mb={1}>
+                          SSID: {shareData.wifiConfig.ssid}
+                        </Typography>
+                        <Typography variant="body1" fontWeight="bold" mb={2}>
+                          Passwort: {shareData.wifiConfig.password || (shareData.wifiConfig.hasPassword ? '[Passwort nicht verfügbar]' : 'Kein Passwort')}
+                        </Typography>
+                      </Box>
+
                       <Button
                         variant="contained"
                         size="large"
                         onClick={() => setShowGalleryStep(true)}
                         sx={{
-                          mt: 3,
+                          mt: 2,
                           px: 4,
                           py: 1.5,
                           borderRadius: 3,
@@ -332,6 +303,20 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
                       >
                         Weiter zur Galerie
                       </Button>
+                      
+                      {/* Hinweis */}
+                      <Typography 
+                        variant="body2" 
+                        color="text.secondary" 
+                        sx={{ 
+                          mt: 3, 
+                          fontStyle: 'italic',
+                          textAlign: 'center',
+                          px: 2
+                        }}
+                      >
+                        Hinweis: Dieses WLAN hat keinen Internetzugriff und ist nur zum Teilen der Fotos gedacht
+                      </Typography>
                     </Box>
                   ) : (
                     // Wenn kein WLAN QR-Code, direkt zur Galerie
@@ -375,8 +360,7 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
                 </Box>
               )}
 
-              {/* Manual URL */}
-              {renderManualUrl()}
+              {/* Manual URL entfernt */}
             </Box>
           )}
         </Box>
