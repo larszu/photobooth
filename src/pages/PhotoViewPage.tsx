@@ -135,19 +135,32 @@ const PhotoViewPage: React.FC = () => {
 
   const handleDeletePhoto = async () => {
     try {
-      const response = await fetch(`http://localhost:3001/api/photos/${encodeURIComponent(decodedId)}/delete`, {
-        method: 'DELETE'
+      // Extrahiere nur den Dateinamen aus dem decodedId (falls es ein Pfad ist)
+      const filename = decodedId.includes('/') ? decodedId.split('/').pop() : decodedId;
+      
+      console.log('Deleting photo:', { decodedId, filename });
+      
+      // Verwende die Backend-Route für einzelne Fotos
+      const response = await fetch(`http://localhost:3001/api/photos/${encodeURIComponent(filename!)}/trash`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
       
       if (response.ok) {
-        // Nach dem Löschen zur Galerie zurückkehren
+        const result = await response.json();
+        console.log('Photo moved to trash:', result);
+        // Nach dem Verschieben zur Galerie zurückkehren
         const backUrl = getBackUrl();
         navigate(backUrl);
       } else {
-        alert('Fehler beim Verschieben in den Papierkorb');
+        const errorResult = await response.json();
+        console.error('Error response:', errorResult);
+        alert(`Fehler beim Verschieben in den Papierkorb: ${errorResult.message || 'Unbekannter Fehler'}`);
       }
     } catch (error) {
-      console.error('Error deleting photo:', error);
+      console.error('Error moving photo to trash:', error);
       alert('Fehler beim Verschieben in den Papierkorb');
     }
   };
