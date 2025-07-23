@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Box, Typography, IconButton } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ShareIcon from '@mui/icons-material/Share';
+import DeleteIcon from '@mui/icons-material/Delete';
 import SmartShareDialog from '../components/SmartShareDialog';
 import SmartShareV2Dialog from '../components/SmartShareV2Dialog';
 
@@ -130,6 +131,25 @@ const PhotoViewPage: React.FC = () => {
 
   const handleDoubleClick = () => {
     // Bei existierenden Fotos nichts machen
+  };
+
+  const handleDeletePhoto = async () => {
+    try {
+      const response = await fetch(`http://localhost:3001/api/photos/${encodeURIComponent(decodedId)}/delete`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        // Nach dem Löschen zur Galerie zurückkehren
+        const backUrl = getBackUrl();
+        navigate(backUrl);
+      } else {
+        alert('Fehler beim Verschieben in den Papierkorb');
+      }
+    } catch (error) {
+      console.error('Error deleting photo:', error);
+      alert('Fehler beim Verschieben in den Papierkorb');
+    }
   };
 
   return (
@@ -264,7 +284,30 @@ const PhotoViewPage: React.FC = () => {
           }}
         />
         
-        {/* Navigation Buttons */}
+        {/* Papierkorb-Button oben rechts im Container */}
+        <IconButton
+          onClick={handleDeletePhoto}
+          sx={{
+            position: 'absolute',
+            top: { xs: 12, md: 16 },
+            right: { xs: 12, md: 16 },
+            width: { xs: 40, md: 44 },
+            height: { xs: 40, md: 44 },
+            backgroundColor: 'rgba(244, 67, 54, 0.8)',
+            color: '#fff',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            '&:hover': { 
+              backgroundColor: 'rgba(244, 67, 54, 1)',
+              transform: 'scale(1.05)'
+            },
+            transition: 'all 0.2s'
+          }}
+        >
+          <DeleteIcon sx={{ fontSize: { xs: 16, md: 18 } }} />
+        </IconButton>
+        
+        {/* Navigation Buttons - Foto Aufnehmen mittig, Share rechts */}
         <Box sx={{
           position: 'absolute',
           bottom: { xs: 16, md: 24 },
@@ -272,30 +315,10 @@ const PhotoViewPage: React.FC = () => {
           right: 0,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          justifyContent: 'center',
           paddingX: { xs: 2, md: 3 },
           pointerEvents: 'none',
         }}>
-          <IconButton
-            onClick={handleBackNavigation}
-            sx={{
-              width: { xs: 44, md: 48 },
-              height: { xs: 44, md: 48 },
-              backgroundColor: 'rgba(0, 0, 0, 0.8)',
-              color: '#fff',
-              pointerEvents: 'auto',
-              backdropFilter: 'blur(12px)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              '&:hover': { 
-                backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                transform: 'scale(1.05)'
-              },
-              transition: 'all 0.2s'
-            }}
-          >
-            <ArrowBackIcon sx={{ fontSize: { xs: 18, md: 20 } }} />
-          </IconButton>
-          
           <Box
             sx={{
               padding: { xs: '6px 12px', md: '8px 16px' },
@@ -318,12 +341,14 @@ const PhotoViewPage: React.FC = () => {
             }}
             onClick={() => navigate('/photo/new')}
           >
-            📸 Neues Foto
+            📸 Foto Aufnehmen
           </Box>
           
           <IconButton
             onClick={() => setShareV2DialogOpen(true)}
             sx={{
+              position: 'absolute',
+              right: { xs: 2, md: 3 },
               width: { xs: 44, md: 48 },
               height: { xs: 44, md: 48 },
               backgroundColor: 'rgba(76, 175, 80, 0.8)',
@@ -341,6 +366,7 @@ const PhotoViewPage: React.FC = () => {
             <ShareIcon sx={{ fontSize: { xs: 18, md: 20 } }} />
           </IconButton>
         </Box>
+        
       </Box>
       
       {/* Smart Share Dialogs */}
