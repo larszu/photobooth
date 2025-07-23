@@ -147,7 +147,8 @@ const PhotoViewPage: React.FC = () => {
       margin: 0,
       padding: 0,
       overflow: 'hidden',
-      backgroundColor: '#ffffff' // Weißer Hintergrund für Light Mode
+      backgroundColor: '#ff0000', // DEBUG: Roter Hintergrund
+      border: '10px solid #00ff00' // DEBUG: Grüner Rand
     }}>
       {/* Zurück-Button */}
       <IconButton 
@@ -200,8 +201,8 @@ const PhotoViewPage: React.FC = () => {
             fontWeight: 700, 
             fontSize: { xs: 24, md: 32 },
             zIndex: 1001,
-            color: '#333333', // Dunkler Text für Light Mode
-            textShadow: '0 1px 2px rgba(255,255,255,0.8)',
+            color: 'white',
+            textShadow: '0 2px 4px rgba(0,0,0,0.8)',
             textAlign: 'center'
           }}
         >

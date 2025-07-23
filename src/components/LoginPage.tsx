@@ -118,18 +118,25 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       <Box
         data-container="login"
         sx={{
-          minHeight: '100vh',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
           width: '100vw',
+          height: '100vh',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           px: 2,
           py: { xs: 2, sm: 3, md: 4 },
-          position: 'relative',
           // Ganzer Container bewegt sich nach oben bei Tastatur
           transform: isAnyKeyboardVisible ? 'translateY(-120px)' : 'translateY(0)',
           transition: 'transform 0.3s ease-in-out',
+          // Sorge dafür, dass es vollständig den Viewport ausfüllt
+          margin: 0,
+          overflow: 'hidden',
         }}
       >
         <Card
