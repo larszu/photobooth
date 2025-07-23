@@ -6,6 +6,7 @@ import ShareIcon from '@mui/icons-material/Share';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SmartShareDialog from '../components/SmartShareDialog';
 import SmartShareV2Dialog from '../components/SmartShareV2Dialog';
+import BulkSmartShareDialog from '../components/BulkSmartShareDialog';
 
 const PhotoViewPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +25,7 @@ const PhotoViewPage: React.FC = () => {
   const [branding, setBranding] = useState<{ type: 'logo' | 'text', logo?: string, text?: string }>({ type: 'text', text: '' });
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [shareV2DialogOpen, setShareV2DialogOpen] = useState(false);
+  const [bulkShareDialogOpen, setBulkShareDialogOpen] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
 
   // Intelligente Navigation: Bestimme die korrekte Zurück-URL
@@ -358,7 +360,7 @@ const PhotoViewPage: React.FC = () => {
           </Box>
           
           <IconButton
-            onClick={() => setShareV2DialogOpen(true)}
+            onClick={() => setBulkShareDialogOpen(true)}
             sx={{
               position: 'absolute',
               right: { xs: 2, md: 3 },
@@ -394,6 +396,11 @@ const PhotoViewPage: React.FC = () => {
             open={shareV2DialogOpen}
             onClose={() => setShareV2DialogOpen(false)}
             photoId={decodedId}
+          />
+          <BulkSmartShareDialog
+            open={bulkShareDialogOpen}
+            onClose={() => setBulkShareDialogOpen(false)}
+            photoIds={[decodedId]} // Einzelnes Foto als Array
           />
         </>
       )}

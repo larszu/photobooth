@@ -9,14 +9,10 @@ import {
   Alert,
   Chip,
   Card,
-  CardMedia,
-  ToggleButton,
-  ToggleButtonGroup
+  CardMedia
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import WifiIcon from '@mui/icons-material/Wifi';
-import AutoModeIcon from '@mui/icons-material/AutoMode';
-import ManualModeIcon from '@mui/icons-material/Settings';
 
 interface BulkSmartShareDialogProps {
   open: boolean;
@@ -58,7 +54,8 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
   const [wifiStatus, setWifiStatus] = useState<WifiStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [mode, setMode] = useState<'auto' | 'manual'>('auto');
+  // Mode ist immer 'manual' - kein Toggle mehr
+  const mode = 'manual';
 
   useEffect(() => {
     if (open && photoIds.length > 0) {
@@ -93,7 +90,8 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
   const loadBulkShareData = async () => {
     // Erstelle Bulk Share URL mit allen Foto-IDs
     const photoIdsParam = photoIds.map(id => encodeURIComponent(id)).join(',');
-    const requestMode = mode === 'auto' && wifiStatus?.connected ? 'gallery' : 'auto';
+    // Immer 'auto' mode für Backend (zeigt beide QR-Codes an)
+    const requestMode = 'auto';
     
     const response = await fetch(`/api/bulk-smart-share?photos=${photoIdsParam}&mode=${requestMode}`);
     const data = await response.json();
@@ -106,9 +104,8 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
   };
 
   const handleModeChange = (_event: React.MouseEvent<HTMLElement>, newMode: 'auto' | 'manual' | null) => {
-    if (newMode !== null) {
-      setMode(newMode);
-    }
+    // Mode ist fest auf 'manual' - diese Funktion wird nicht mehr verwendet
+    // Kann entfernt werden wenn Toggle entfernt wird
   };
 
   const handleClose = () => {
@@ -146,31 +143,6 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
       
       <Typography variant="body2" color="text.secondary">
         {description}
-      </Typography>
-    </Box>
-  );
-
-  const renderModeToggle = () => (
-    <Box sx={{ mb: 3, textAlign: 'center' }}>
-      <ToggleButtonGroup
-        value={mode}
-        exclusive
-        onChange={handleModeChange}
-        aria-label="share mode"
-        size="small"
-      >
-        <ToggleButton value="auto" aria-label="smart mode">
-          <AutoModeIcon sx={{ mr: 1 }} />
-          Smart
-        </ToggleButton>
-        <ToggleButton value="manual" aria-label="manual mode">
-          <ManualModeIcon sx={{ mr: 1 }} />
-          Manual
-        </ToggleButton>
-      </ToggleButtonGroup>
-      
-      <Typography variant="caption" display="block" sx={{ mt: 1, opacity: 0.7 }}>
-        {mode === 'auto' ? 'Automatische QR-Code Auswahl' : 'Beide QR-Codes gleichzeitig'}
       </Typography>
     </Box>
   );
@@ -329,9 +301,6 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
                   />
                 </Box>
               )}
-
-              {/* Mode Toggle */}
-              {renderModeToggle()}
 
               {/* Photo Grid */}
               {renderPhotoGrid()}
