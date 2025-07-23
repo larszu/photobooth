@@ -173,7 +173,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           px: 2,
           py: { xs: 2, sm: 3, md: 4 },
           // Ganzer Container bewegt sich nach oben bei Tastatur
-          transform: isAnyKeyboardVisible ? 'translateY(-60px)' : 'translateY(0)',
+          transform: isAnyKeyboardVisible ? 'translateY(-90px)' : 'translateY(0)',
           transition: 'transform 0.3s ease-in-out',
           // Sorge dafür, dass es vollständig den Viewport ausfüllt
           margin: 0,
@@ -267,11 +267,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             >
               {loading ? 'Anmelden...' : 'Anmelden'}
             </Button>
-            
-            {/* Zusätzlicher Platz wenn Tastatur sichtbar */}
-            {isAnyKeyboardVisible && (
-              <Box sx={{ height: '200px', backgroundColor: 'transparent' }} />
-            )}
           </Box>
         </CardContent>
       </Card>
