@@ -250,20 +250,45 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
               ) : (
                 // Schritt 2: Galerie QR-Code
                 <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="h6" fontWeight="bold" mb={2} color="secondary.main">
-                    2. Galerie öffnen
+                  <Typography variant="h6" fontWeight="bold" mb={3} color="secondary.main">
+                    Schritt 2:<br />
+                    Galerie öffnen
                   </Typography>
                   {shareData.galleryQrCode && renderQrCode(
                     shareData.galleryQrCode,
-                    'Galerie öffnen',
-                    'Alle Fotos anzeigen und herunterladen'
+                    '',
+                    ''
                   )}
+                  
+                  {/* Galerie URL */}
+                  <Box sx={{ mt: 2, mb: 3 }}>
+                    <Typography variant="body2" color="text.secondary" mb={1}>
+                      Alternativ: Link manuell eingeben oder weiterleiten
+                    </Typography>
+                    <Typography 
+                      variant="body1" 
+                      fontWeight="bold" 
+                      sx={{ 
+                        fontFamily: 'monospace',
+                        backgroundColor: '#f5f5f5',
+                        p: 1,
+                        borderRadius: 1,
+                        wordBreak: 'break-all'
+                      }}
+                    >
+                      {shareData.shareUrl}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                      Diesen Link können Sie in WhatsApp, E-Mail oder Browser eingeben
+                    </Typography>
+                  </Box>
+
                   <Button
                     variant="outlined"
                     size="large"
                     onClick={() => setShowGalleryStep(false)}
                     sx={{
-                      mt: 3,
+                      mt: 2,
                       px: 4,
                       py: 1.5,
                       borderRadius: 3,
