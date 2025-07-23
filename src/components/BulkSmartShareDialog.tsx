@@ -151,7 +151,7 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
     return (
       <Box sx={{ mb: 3 }}>
         <Typography variant="h6" fontWeight="bold" mb={2} textAlign="center">
-          📸 {shareData.totalPhotos} Fotos teilen
+          {shareData.totalPhotos} Fotos teilen
         </Typography>
         
         <Box sx={{ 
@@ -260,7 +260,7 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
           </IconButton>
           
           <Typography variant="h5" fontWeight="bold" textAlign="center" mb={1}>
-            📱 Bulk Smart Share
+            Bulk Smart Share
           </Typography>
           <Typography variant="body2" textAlign="center" sx={{ opacity: 0.9 }}>
             Mehrere Fotos gleichzeitig teilen
@@ -310,11 +310,11 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
                   {shareData.wifiConfig.enabled && shareData.wifiQrCode ? (
                     <Box>
                       <Typography variant="h6" fontWeight="bold" mb={2} color="primary.main">
-                        1️⃣ WLAN verbinden
+                        1. WLAN verbinden
                       </Typography>
                       {renderQrCode(
                         shareData.wifiQrCode,
-                        '📶 WLAN-Verbindung',
+                        'WLAN-Verbindung',
                         `Mit "${shareData.wifiConfig.ssid}" verbinden`
                       )}
                       <Button
@@ -330,7 +330,7 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
                           fontWeight: 'bold'
                         }}
                       >
-                        ➡️ Weiter zur Galerie
+                        Weiter zur Galerie
                       </Button>
                     </Box>
                   ) : (
@@ -351,11 +351,11 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
                 // Schritt 2: Galerie QR-Code
                 <Box sx={{ textAlign: 'center' }}>
                   <Typography variant="h6" fontWeight="bold" mb={2} color="secondary.main">
-                    2️⃣ Galerie öffnen
+                    2. Galerie öffnen
                   </Typography>
                   {shareData.galleryQrCode && renderQrCode(
                     shareData.galleryQrCode,
-                    '📸 Galerie öffnen',
+                    'Galerie öffnen',
                     'Alle Fotos anzeigen und herunterladen'
                   )}
                   <Button
@@ -370,7 +370,7 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
                       fontSize: '1rem'
                     }}
                   >
-                    ⬅️ Zurück zu WLAN
+                    Zurück zu WLAN
                   </Button>
                 </Box>
               )}
