@@ -9,7 +9,8 @@ import {
   Alert,
   Chip,
   Card,
-  CardMedia
+  CardMedia,
+  Button
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import WifiIcon from '@mui/icons-material/Wifi';
@@ -54,6 +55,7 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
   const [wifiStatus, setWifiStatus] = useState<WifiStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showGalleryStep, setShowGalleryStep] = useState(false);
   // Mode ist immer 'manual' - kein Toggle mehr
   const mode = 'manual';
 
@@ -103,15 +105,11 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
     }
   };
 
-  const handleModeChange = (_event: React.MouseEvent<HTMLElement>, newMode: 'auto' | 'manual' | null) => {
-    // Mode ist fest auf 'manual' - diese Funktion wird nicht mehr verwendet
-    // Kann entfernt werden wenn Toggle entfernt wird
-  };
-
   const handleClose = () => {
     setShareData(null);
     setWifiStatus(null);
     setError(null);
+    setShowGalleryStep(false); // Reset gallery step
     onClose();
   };
 
@@ -305,23 +303,12 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
               {/* Photo Grid */}
               {renderPhotoGrid()}
 
-              {/* QR-Codes */}
-              {mode === 'manual' ? (
-                // Manual Mode: Beide QR-Codes nebeneinander
-                <Box sx={{ 
-                  display: 'flex', 
-                  flexDirection: { xs: 'column', md: 'row' },
-                  gap: 3,
-                  justifyContent: 'center',
-                  alignItems: 'flex-start'
-                }}>
-                  {/* WLAN QR-Code */}
-                  {shareData.wifiConfig.enabled && shareData.wifiQrCode && (
-                    <Box sx={{ 
-                      flex: 1,
-                      textAlign: 'center',
-                      maxWidth: { xs: '100%', md: '45%' }
-                    }}>
+              {/* Schrittweise QR-Code Anzeige */}
+              {!showGalleryStep ? (
+                // Schritt 1: WLAN QR-Code
+                <Box sx={{ textAlign: 'center' }}>
+                  {shareData.wifiConfig.enabled && shareData.wifiQrCode ? (
+                    <Box>
                       <Typography variant="h6" fontWeight="bold" mb={2} color="primary.main">
                         1️⃣ WLAN verbinden
                       </Typography>
@@ -330,45 +317,61 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
                         '📶 WLAN-Verbindung',
                         `Mit "${shareData.wifiConfig.ssid}" verbinden`
                       )}
+                      <Button
+                        variant="contained"
+                        size="large"
+                        onClick={() => setShowGalleryStep(true)}
+                        sx={{
+                          mt: 3,
+                          px: 4,
+                          py: 1.5,
+                          borderRadius: 3,
+                          fontSize: '1.1rem',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        ➡️ Weiter zur Galerie
+                      </Button>
                     </Box>
-                  )}
-                  
-                  {/* Galerie QR-Code */}
-                  {shareData.galleryQrCode && (
-                    <Box sx={{ 
-                      flex: 1,
-                      textAlign: 'center',
-                      maxWidth: { xs: '100%', md: '45%' }
-                    }}>
+                  ) : (
+                    // Wenn kein WLAN QR-Code, direkt zur Galerie
+                    <Box>
                       <Typography variant="h6" fontWeight="bold" mb={2} color="secondary.main">
-                        {shareData.wifiConfig.enabled ? '2️⃣ Galerie öffnen' : 'Galerie öffnen'}
+                        Galerie öffnen
                       </Typography>
-                      {renderQrCode(
+                      {shareData.galleryQrCode && renderQrCode(
                         shareData.galleryQrCode,
-                        '📸 Galerie öffnen',
+                        '� Galerie öffnen',
                         'Alle Fotos anzeigen und herunterladen'
                       )}
                     </Box>
                   )}
                 </Box>
               ) : (
-                // Smart Mode: Ein QR-Code
+                // Schritt 2: Galerie QR-Code
                 <Box sx={{ textAlign: 'center' }}>
-                  {wifiStatus?.connected || !shareData.wifiConfig.enabled ? (
-                    // Bereits verbunden oder WLAN deaktiviert → Galerie QR
-                    shareData.galleryQrCode && renderQrCode(
-                      shareData.galleryQrCode,
-                      '📸 Galerie öffnen',
-                      `${shareData.totalPhotos} Fotos anzeigen und herunterladen`
-                    )
-                  ) : (
-                    // Nicht verbunden → WLAN QR
-                    shareData.wifiQrCode && renderQrCode(
-                      shareData.wifiQrCode,
-                      '📶 WLAN verbinden & Galerie öffnen',
-                      `Mit "${shareData.wifiConfig.ssid}" verbinden und Galerie automatisch öffnen`
-                    )
+                  <Typography variant="h6" fontWeight="bold" mb={2} color="secondary.main">
+                    2️⃣ Galerie öffnen
+                  </Typography>
+                  {shareData.galleryQrCode && renderQrCode(
+                    shareData.galleryQrCode,
+                    '📸 Galerie öffnen',
+                    'Alle Fotos anzeigen und herunterladen'
                   )}
+                  <Button
+                    variant="outlined"
+                    size="large"
+                    onClick={() => setShowGalleryStep(false)}
+                    sx={{
+                      mt: 3,
+                      px: 4,
+                      py: 1.5,
+                      borderRadius: 3,
+                      fontSize: '1rem'
+                    }}
+                  >
+                    ⬅️ Zurück zu WLAN
+                  </Button>
                 </Box>
               )}
 
