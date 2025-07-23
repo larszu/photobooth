@@ -184,8 +184,7 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
                   {shareData.wifiConfig.enabled && shareData.wifiQrCode ? (
                     <Box>
                       <Typography variant="h6" fontWeight="bold" mb={3} color="primary.main">
-                        Schritt 1:<br />
-                        WLAN Verbindung mit der Fotobox herstellen
+                        Mit Fotobox verbinden
                       </Typography>
                       {renderQrCode(
                         shareData.wifiQrCode,
@@ -232,6 +231,43 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
                       >
                         Hinweis: Dieses WLAN hat keinen Internetzugriff und ist nur zum Teilen der Fotos gedacht
                       </Typography>
+
+                      {/* Anleitung für QR-Code */}
+                      <Box sx={{ 
+                        mt: 3, 
+                        p: 3, 
+                        backgroundColor: '#f5f5f5', 
+                        borderRadius: 2,
+                        border: '1px solid #e0e0e0'
+                      }}>
+                        <Typography variant="body2" fontWeight="bold" mb={2} color="text.secondary">
+                          So verbinden Sie sich mit dem WLAN:
+                        </Typography>
+                        
+                        <Box sx={{ textAlign: 'left', mb: 2 }}>
+                          <Typography variant="body2" fontWeight="bold" mb={1} color="text.secondary">
+                            iPhone:
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1, lineHeight: 1.5 }}>
+                            1. Öffnen Sie die Kamera-App<br/>
+                            2. Halten Sie das iPhone über den QR-Code<br/>
+                            3. Tippen Sie auf die WLAN-Benachrichtigung die erscheint<br/>
+                            4. Bestätigen Sie mit "Verbinden"
+                          </Typography>
+                        </Box>
+
+                        <Box sx={{ textAlign: 'left' }}>
+                          <Typography variant="body2" fontWeight="bold" mb={1} color="text.secondary">
+                            Android:
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
+                            1. Öffnen Sie die Kamera-App oder QR-Code Scanner<br/>
+                            2. Scannen Sie den QR-Code<br/>
+                            3. Tippen Sie auf "Mit Netzwerk verbinden"<br/>
+                            4. Oder gehen Sie zu WLAN-Einstellungen und wählen Sie das Netzwerk manuell
+                          </Typography>
+                        </Box>
+                      </Box>
                     </Box>
                   ) : (
                     // Wenn kein WLAN QR-Code, direkt zur Galerie
@@ -251,8 +287,7 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
                 // Schritt 2: Galerie QR-Code
                 <Box sx={{ textAlign: 'center' }}>
                   <Typography variant="h6" fontWeight="bold" mb={3} color="secondary.main">
-                    Schritt 2:<br />
-                    Galerie öffnen
+                    Ihre Fotos ansehen
                   </Typography>
                   {shareData.galleryQrCode && renderQrCode(
                     shareData.galleryQrCode,
@@ -281,6 +316,42 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
                     <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
                       Diesen Link können Sie in WhatsApp, E-Mail oder Browser eingeben
                     </Typography>
+                  </Box>
+
+                  {/* Anleitung für Galerie QR-Code */}
+                  <Box sx={{ 
+                    mt: 3, 
+                    p: 3, 
+                    backgroundColor: '#f0f9f0', 
+                    borderRadius: 2,
+                    border: '1px solid #d0e7d0'
+                  }}>
+                    <Typography variant="body2" fontWeight="bold" mb={2} color="success.main">
+                      📸 So öffnen Sie die Fotogalerie:
+                    </Typography>
+                    
+                    <Box sx={{ textAlign: 'left', mb: 2 }}>
+                      <Typography variant="body2" fontWeight="bold" mb={1}>
+                        iPhone & Android:
+                      </Typography>
+                      <Typography variant="body2" sx={{ mb: 1, lineHeight: 1.5 }}>
+                        1. Öffnen Sie die Kamera-App<br/>
+                        2. Halten Sie das Handy über den QR-Code<br/>
+                        3. Tippen Sie auf den Link der erscheint<br/>
+                        4. Die Fotogalerie öffnet sich in Ihrem Browser
+                      </Typography>
+                    </Box>
+
+                    <Box sx={{ textAlign: 'left' }}>
+                      <Typography variant="body2" fontWeight="bold" mb={1}>
+                        Falls der QR-Code nicht funktioniert:
+                      </Typography>
+                      <Typography variant="body2" sx={{ lineHeight: 1.5 }}>
+                        • Kopieren Sie den Link oben und fügen Sie ihn in Ihren Browser ein<br/>
+                        • Oder senden Sie den Link per WhatsApp an sich selbst<br/>
+                        • Stellen Sie sicher, dass Sie mit dem Fotobox-WLAN verbunden sind
+                      </Typography>
+                    </Box>
                   </Box>
 
                   <Button
