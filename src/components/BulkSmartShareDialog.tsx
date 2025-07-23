@@ -7,13 +7,9 @@ import {
   CircularProgress, 
   IconButton,
   Alert,
-  Chip,
-  Card,
-  CardMedia,
   Button
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import WifiIcon from '@mui/icons-material/Wifi';
 
 interface BulkSmartShareDialogProps {
   open: boolean;
@@ -41,20 +37,8 @@ interface BulkShareData {
   }>;
 }
 
-interface WifiStatus {
-  connected: boolean;
-  clientIP: string;
-  wifiConfig: {
-    enabled: boolean;
-    ssid: string;
-    hasPassword: boolean;
-    password?: string; // Echtes Passwort hinzufügen
-  };
-}
-
 const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClose, photoIds }) => {
   const [shareData, setShareData] = useState<BulkShareData | null>(null);
-  const [wifiStatus, setWifiStatus] = useState<WifiStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showGalleryStep, setShowGalleryStep] = useState(false);
@@ -72,15 +56,7 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
     setError(null);
     
     try {
-      // 1. WLAN-Status prüfen
-      const wifiResponse = await fetch('/api/wifi-status');
-      const wifiData = await wifiResponse.json();
-      
-      if (wifiData.success) {
-        setWifiStatus(wifiData);
-      }
-
-      // 2. Bulk Share Daten laden
+      // Bulk Share Daten laden
       await loadBulkShareData();
       
     } catch (err) {
@@ -109,7 +85,6 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
 
   const handleClose = () => {
     setShareData(null);
-    setWifiStatus(null);
     setError(null);
     setShowGalleryStep(false); // Reset gallery step
     onClose();
@@ -146,48 +121,6 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
       </Typography>
     </Box>
   );
-
-  const renderPhotoGrid = () => {
-    if (!shareData?.photos) return null;
-
-    return (
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h6" fontWeight="bold" mb={2} textAlign="center">
-          {shareData.totalPhotos} Fotos teilen
-        </Typography>
-        
-        <Box sx={{ 
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 1,
-          maxHeight: 200,
-          overflowY: 'auto',
-          justifyContent: 'center'
-        }}>
-          {shareData.photos.map((photo) => (
-            <Box key={photo.id} sx={{ width: 60, height: 60 }}>
-              <Card sx={{ 
-                borderRadius: 2, 
-                overflow: 'hidden',
-                width: '100%',
-                height: '100%'
-              }}>
-                <CardMedia
-                  component="img"
-                  height="100%"
-                  image={photo.thumbnailUrl}
-                  alt={photo.filename}
-                  sx={{
-                    objectFit: 'cover'
-                  }}
-                />
-              </Card>
-            </Box>
-          ))}
-        </Box>
-      </Box>
-    );
-  };
 
   return (
     <Dialog 
@@ -244,24 +177,6 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
 
           {shareData && !loading && (
             <Box>
-              {/* WLAN-Status */}
-              {wifiStatus && (
-                <Box sx={{ mb: 3, textAlign: 'center' }}>
-                  <Chip
-                    icon={<WifiIcon />}
-                    label={wifiStatus.connected ? 
-                      `✅ Verbunden mit ${wifiStatus.wifiConfig.ssid}` : 
-                      '❌ Nicht verbunden'
-                    }
-                    color={wifiStatus.connected ? 'success' : 'error'}
-                    variant="outlined"
-                  />
-                </Box>
-              )}
-
-              {/* Photo Grid */}
-              {renderPhotoGrid()}
-
               {/* Schrittweise QR-Code Anzeige */}
               {!showGalleryStep ? (
                 // Schritt 1: WLAN QR-Code
