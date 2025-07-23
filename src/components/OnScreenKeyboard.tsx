@@ -22,8 +22,9 @@ interface OnScreenKeyboardProps {
   onEnter: () => void;
   onClose: () => void;
   position?: 'bottom' | 'top';
-  avoidCollision?: boolean; // Verhindert Überlappung mit wichtigen UI-Elementen
-  maxHeightPercent?: number; // Maximale Höhe als Prozent des Viewports
+  avoidCollision?: boolean;
+  maxHeightPercent?: number;
+  width?: string;
 }
 
 const OnScreenKeyboard: React.FC<OnScreenKeyboardProps> = ({
@@ -34,7 +35,8 @@ const OnScreenKeyboard: React.FC<OnScreenKeyboardProps> = ({
   onClose,
   position = 'bottom',
   avoidCollision = true,
-  maxHeightPercent = 35
+  maxHeightPercent = 35,
+  width = '100%'
 }) => {
   const [isShift, setIsShift] = useState(false);
   const [isCapsLock, setIsCapsLock] = useState(false);
@@ -42,47 +44,29 @@ const OnScreenKeyboard: React.FC<OnScreenKeyboardProps> = ({
 
   // QWERTZ Layout
   const keyboardLayout = [
-    // Zahlenreihe
     ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'ß', '´'],
-    // Erste Buchstabenreihe
     ['q', 'w', 'e', 'r', 't', 'z', 'u', 'i', 'o', 'p', 'ü', '+'],
-    // Zweite Buchstabenreihe
     ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'ö', 'ä', '#'],
-    // Dritte Buchstabenreihe
     ['y', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '-']
   ];
 
-  // Shift-Varianten für Zahlenreihe
   const shiftNumbers = ['!', '"', '§', '$', '%', '&', '/', '(', ')', '=', '?', '`'];
   
-  // Shift-Varianten für Sonderzeichen
   const shiftSpecial: { [key: string]: string } = {
-    '+': '*',
-    '#': "'",
-    ',': ';',
-    '.': ':',
-    '-': '_',
-    'ü': 'Ü',
-    'ö': 'Ö',
-    'ä': 'Ä',
-    'ß': '?'
+    '+': '*', '#': "'", ',': ';', '.': ':', '-': '_',
+    'ü': 'Ü', 'ö': 'Ö', 'ä': 'Ä', 'ß': '?'
   };
 
   const handleKeyPress = (key: string) => {
     let finalKey = key;
 
-    // Groß-/Kleinschreibung für Buchstaben
     if (/^[a-zäöüß]$/.test(key)) {
       if (isShift || isCapsLock) {
         finalKey = key.toUpperCase();
       }
-    }
-    // Shift-Varianten für Sonderzeichen
-    else if (isShift && shiftSpecial[key]) {
+    } else if (isShift && shiftSpecial[key]) {
       finalKey = shiftSpecial[key];
-    }
-    // Zahlenreihe mit Shift
-    else if (isShift && /^[0-9ß´]$/.test(key)) {
+    } else if (isShift && /^[0-9ß´]$/.test(key)) {
       const index = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'ß', '´'].indexOf(key);
       if (index !== -1) {
         finalKey = shiftNumbers[index];
@@ -90,21 +74,23 @@ const OnScreenKeyboard: React.FC<OnScreenKeyboardProps> = ({
     }
 
     onKeyPress(finalKey);
-    
-    // Shift zurücksetzen (außer bei Caps Lock)
-    if (isShift && !isCapsLock) {
-      setIsShift(false);
-    }
+    if (isShift && !isCapsLock) setIsShift(false);
   };
 
-  const handleShift = () => {
-    setIsShift(!isShift);
-  };
-
+  const handleShift = () => setIsShift(!isShift);
   const handleCapsLock = () => {
     setIsCapsLock(!isCapsLock);
     setIsShift(false);
   };
+
+  // Intelligente Container-Erkennung
+  const isInConstrainedContainer = React.useMemo(() => {
+    // Prüfe ob wir in einem begrenzten Container sind (z.B. LoginPage)
+    const container = document.querySelector('[data-container="login"]') || 
+                     document.querySelector('.MuiContainer-root') ||
+                     document.querySelector('[role="dialog"]');
+    return container !== null;
+  }, [isVisible]);
 
   const keyboardStyles = {
     position: 'fixed' as const,
@@ -116,7 +102,7 @@ const OnScreenKeyboard: React.FC<OnScreenKeyboardProps> = ({
     backgroundColor: '#f5f5f5',
     border: '1px solid #ddd',
     borderRadius: position === 'bottom' ? '12px 12px 0 0' : '0 0 12px 12px',
-    padding: '8px',
+    padding: { xs: '6px', sm: '8px', md: '10px' },
     maxHeight: `${maxHeightPercent}vh`,
     overflow: 'hidden',
     boxSizing: 'border-box' as const,
@@ -128,269 +114,124 @@ const OnScreenKeyboard: React.FC<OnScreenKeyboardProps> = ({
   if (!isVisible) return null;
 
   return (
-    <Slide direction={position === 'bottom' ? 'up' : 'down'} in={isVisible} mountOnEnter unmountOnExit>
+    <Slide direction={position === 'bottom' ? 'up' : 'down'} in={isVisible}>
       <Paper sx={keyboardStyles} elevation={8}>
-        {/* Header mit Minimize/Schließen-Buttons */}
         <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          mb: { xs: 0.5, sm: 1, md: 1 },
-          px: { xs: 0.5, sm: 1, md: 1 }
+          width: isInConstrainedContainer 
+            ? { xs: '95%', sm: '85%', md: '75%' }  // Schmaler für Container wie LoginPage
+            : '100%', // Volle Breite für Vollbild-Seiten wie AdminPage
+          margin: '0 auto',
+          display: 'flex',
+          flexDirection: 'column'
         }}>
-          <Typography variant="body2" color="text.secondary" sx={{ 
-            fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.9rem' },
-            display: 'flex',
-            alignItems: 'center'
-          }}>
-            <KeyboardIcon sx={{ 
-              fontSize: { xs: '0.9rem', sm: '1rem', md: '1.1rem' }, 
-              mr: 0.5, 
-              verticalAlign: 'middle' 
-            }} />
-            <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-              QWERTZ Tastatur
-            </Box>
-            <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
-              QWERTZ
-            </Box>
-          </Typography>
-          <Box sx={{ display: 'flex', gap: { xs: 0.3, sm: 0.5, md: 0.5 } }}>
-            <IconButton 
-              onClick={() => setIsMinimized(!isMinimized)} 
-              size="small"
-              sx={{ 
-                backgroundColor: '#e0e0e0',
-                '&:hover': { backgroundColor: '#d0d0d0' },
-                width: { xs: 24, sm: 28, md: 32 },
-                height: { xs: 24, sm: 28, md: 32 },
-                fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.9rem' }
-              }}
-              title={isMinimized ? "Tastatur erweitern" : "Tastatur minimieren"}
-            >
-              {isMinimized ? '⬆' : '⬇'}
-            </IconButton>
-            <IconButton 
-              onClick={onClose} 
-              size="small"
-              sx={{ 
-                backgroundColor: '#ffcdd2',
-                '&:hover': { backgroundColor: '#f8bbd9' },
-                width: { xs: 24, sm: 28, md: 32 },
-                height: { xs: 24, sm: 28, md: 32 },
-                fontSize: { xs: '0.8rem', sm: '0.9rem', md: '1rem' }
-              }}
-              title="Tastatur schließen"
-            >
-              ×
-            </IconButton>
-          </Box>
-        </Box>
-
-        {/* Tastatur-Layout (nur wenn nicht minimiert) */}
-        {!isMinimized && (
-          <Box sx={{ 
-            userSelect: 'none',
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: { xs: '2px', sm: '3px', md: '4px' }
-          }}>
-            {keyboardLayout.map((row, rowIndex) => (
-            <Box key={rowIndex} sx={{ 
-              display: 'flex', 
-              justifyContent: 'space-between',
-              gap: { xs: '1px', sm: '2px', md: '3px' },
-              width: '100%'
-            }}>
-              {/* Spezielle Tasten für bestimmte Reihen */}
-              {rowIndex === 2 && (
-                <Button
-                  variant={isCapsLock ? 'contained' : 'outlined'}
-                  onClick={handleCapsLock}
-                  sx={{ 
-                    minWidth: { xs: '40px', sm: '50px', md: '70px' }, // Kleinere Mindestbreite
-                    height: { xs: '40px', sm: '48px', md: '56px' }, // Konsistente Höhe mit normalen Tasten
-                    fontSize: { xs: '0.6rem', sm: '0.7rem', md: '0.8rem' },
-                    backgroundColor: isCapsLock ? '#2196f3' : 'white',
-                    color: isCapsLock ? 'white' : 'black',
-                    border: '1px solid #ccc',
-                    flex: 'none'
-                  }}
-                >
-                  CAPS
-                </Button>
-              )}
-              
-              {rowIndex === 3 && (
-                <Button
-                  variant={isShift ? 'contained' : 'outlined'}
-                  onClick={handleShift}
-                  sx={{ 
-                    minWidth: { xs: '45px', sm: '55px', md: '75px' }, // Angepasste Größe
-                    height: { xs: '40px', sm: '48px', md: '56px' }, // Konsistente Höhe
-                    fontSize: { xs: '0.6rem', sm: '0.7rem', md: '0.8rem' },
-                    backgroundColor: isShift ? '#2196f3' : 'white',
-                    color: isShift ? 'white' : 'black',
-                    border: '1px solid #ccc',
-                    flex: 'none'
-                  }}
-                >
-                  <ShiftIcon sx={{ fontSize: { xs: '1rem', sm: '1.1rem', md: '1.3rem' } }} />
-                </Button>
-              )}
-
-              {/* Container für normale Tasten - nimmt den verfügbaren Platz ein */}
-              <Box sx={{ 
-                display: 'flex', 
-                flex: 1, 
-                gap: { xs: '1px', sm: '2px', md: '3px' },
-                justifyContent: 'space-between'
-              }}>
-                {/* Normale Tasten */}
-                {row.map((key, keyIndex) => (
-                  <Button
-                    key={`${rowIndex}-${keyIndex}`}
-                    variant="outlined"
-                    onClick={() => handleKeyPress(key)}
-                    sx={{
-                      flex: 1,
-                      minWidth: { xs: '20px', sm: '28px', md: '40px' }, // Kleinere min-width für mobile
-                      height: { xs: '40px', sm: '48px', md: '56px' }, // Kleinere Höhe für mobile
-                      fontSize: { xs: '0.7rem', sm: '0.8rem', md: '1rem' }, // Kleinere Schrift
-                      backgroundColor: 'white',
-                      color: 'black',
-                      border: '1px solid #ccc',
-                      '&:hover': {
-                        backgroundColor: '#f0f0f0'
-                      },
-                      '&:active': {
-                        backgroundColor: '#e0e0e0'
-                      },
-                      // Responsive text sizing
-                      '& .MuiButton-label': {
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden'
-                      }
-                    }}
-                  >
-                    {/* Zeige Shift-Variante falls aktiviert */}
-                    {isShift ? (
-                      // Zahlenreihe
-                      rowIndex === 0 && /^[0-9ß´]$/.test(key) ? 
-                        shiftNumbers[['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'ß', '´'].indexOf(key)] :
-                      // Sonderzeichen
-                      shiftSpecial[key] || key.toUpperCase()
-                    ) : (
-                      // Normale Anzeige (Caps Lock nur für Buchstaben)
-                      isCapsLock && /^[a-zäöü]$/.test(key) ? key.toUpperCase() : key
-                    )}
-                  </Button>
-                ))}
-              </Box>
-
-              {/* Backspace für erste Reihe */}
-              {rowIndex === 0 && (
-                <Button
-                  variant="outlined"
-                  onClick={onBackspace}
-                  sx={{ 
-                    minWidth: { xs: '45px', sm: '55px', md: '70px' }, // Angepasste Größe
-                    height: { xs: '40px', sm: '48px', md: '56px' }, // Konsistente Höhe
-                    fontSize: { xs: '0.6rem', sm: '0.7rem', md: '0.9rem' },
-                    backgroundColor: '#ffebee',
-                    border: '1px solid #f44336',
-                    color: '#f44336',
-                    flex: 'none',
-                    '&:hover': {
-                      backgroundColor: '#ffcdd2'
-                    }
-                  }}
-                >
-                  <BackspaceIcon sx={{ fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.5rem' } }} />
-                </Button>
-              )}
-
-              {/* Enter für zweite Reihe */}
-              {rowIndex === 1 && (
-                <Button
-                  variant="outlined"
-                  onClick={onEnter}
-                  sx={{ 
-                    minWidth: { xs: '45px', sm: '55px', md: '70px' }, // Angepasste Größe
-                    height: { xs: '40px', sm: '48px', md: '56px' }, // Konsistente Höhe
-                    fontSize: { xs: '0.6rem', sm: '0.7rem', md: '0.9rem' },
-                    backgroundColor: '#e8f5e8',
-                    border: '1px solid #4caf50',
-                    color: '#4caf50',
-                    flex: 'none',
-                    '&:hover': {
-                      backgroundColor: '#c8e6c9'
-                    }
-                  }}
-                >
-                  <EnterIcon sx={{ fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.5rem' } }} />
-                </Button>
-              )}
-            </Box>
-          ))}
-
-          {/* Letzte Reihe mit Leertaste */}
+          {/* Kompakter Header */}
           <Box sx={{ 
             display: 'flex', 
-            justifyContent: 'space-between',
-            gap: { xs: '2px', sm: '3px', md: '4px' },
-            width: '100%',
-            mt: { xs: '2px', sm: '3px', md: '4px' }
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            mb: 0.5,
+            px: 0.5
           }}>
-            <Button
-              variant="outlined"
-              onClick={() => handleKeyPress('@')}
-              sx={{
-                minWidth: { xs: '30px', sm: '35px', md: '45px' }, // Kompakter für mobile
-                height: { xs: '35px', sm: '40px', md: '45px' }, // Kleinere Höhe
-                fontSize: { xs: '0.6rem', sm: '0.7rem', md: '0.8rem' },
-                backgroundColor: 'white',
-                border: '1px solid #ccc',
-                flex: 'none'
-              }}
-            >
-              @
-            </Button>
-            <Button
-              variant="outlined"
-              onClick={() => handleKeyPress(' ')}
-              sx={{
-                flex: 1,
-                height: { xs: '40px', sm: '48px', md: '56px' }, // Konsistente Höhe
-                fontSize: { xs: '0.6rem', sm: '0.7rem', md: '0.9rem' },
-                backgroundColor: '#f9f9f9',
-                border: '1px solid #ccc',
-                mx: { xs: '4px', sm: '6px', md: '8px' },
-                '&:hover': {
-                  backgroundColor: '#f0f0f0'
-                }
-              }}
-            >
-              <SpaceBarIcon sx={{ fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.5rem' } }} />
-            </Button>
-            <Button
-              variant="outlined"
-              onClick={() => handleKeyPress('.')}
-              sx={{
-                minWidth: { xs: '35px', sm: '45px', md: '60px' }, // Kompakter
-                height: { xs: '40px', sm: '48px', md: '56px' }, // Konsistente Höhe
-                fontSize: { xs: '0.7rem', sm: '0.8rem', md: '1rem' },
-                backgroundColor: 'white',
-                border: '1px solid #ccc',
-                flex: 'none'
-              }}
-            >
-              .
-            </Button>
+            <Typography variant="caption" color="text.secondary">
+              <KeyboardIcon sx={{ fontSize: '1rem', mr: 0.5, verticalAlign: 'middle' }} />
+              QWERTZ
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 0.3 }}>
+              <IconButton onClick={() => setIsMinimized(!isMinimized)} size="small"
+                sx={{ backgroundColor: '#e0e0e0', width: 24, height: 24, fontSize: '0.7rem' }}>
+                {isMinimized ? '⬆' : '⬇'}
+              </IconButton>
+              <IconButton onClick={onClose} size="small"
+                sx={{ backgroundColor: '#ffcdd2', width: 24, height: 24, fontSize: '0.8rem' }}>
+                ×
+              </IconButton>
+            </Box>
           </Box>
-          </Box>
-        )}
+
+          {!isMinimized && (
+            <Box sx={{ userSelect: 'none', flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            {keyboardLayout.map((row, rowIndex) => (
+              <Box key={rowIndex} sx={{ display: 'flex', gap: '1px', width: '100%' }}>
+                {/* Spezielle Tasten links */}
+                {rowIndex === 2 && (
+                  <Button variant={isCapsLock ? 'contained' : 'outlined'} onClick={handleCapsLock}
+                    sx={{ minWidth: '40px', height: '36px', fontSize: '0.6rem', flex: 'none',
+                      backgroundColor: isCapsLock ? '#2196f3' : 'white',
+                      color: isCapsLock ? 'white' : 'black', border: '1px solid #ccc' }}>
+                    CAPS
+                  </Button>
+                )}
+                
+                {rowIndex === 3 && (
+                  <Button variant={isShift ? 'contained' : 'outlined'} onClick={handleShift}
+                    sx={{ minWidth: '45px', height: '36px', fontSize: '0.6rem', flex: 'none',
+                      backgroundColor: isShift ? '#2196f3' : 'white',
+                      color: isShift ? 'white' : 'black', border: '1px solid #ccc' }}>
+                    <ShiftIcon sx={{ fontSize: '1rem' }} />
+                  </Button>
+                )}
+
+                {/* Normale Tasten */}
+                <Box sx={{ display: 'flex', flex: 1, gap: '1px' }}>
+                  {row.map((key, keyIndex) => (
+                    <Button key={`${rowIndex}-${keyIndex}`} variant="outlined" 
+                      onClick={() => handleKeyPress(key)}
+                      sx={{
+                        flex: 1, minWidth: '18px', height: '36px', fontSize: '0.7rem',
+                        backgroundColor: 'white', color: 'black', border: '1px solid #ccc',
+                        '&:hover': { backgroundColor: '#f0f0f0' }
+                      }}>
+                      {isShift ? (
+                        rowIndex === 0 && /^[0-9ß´]$/.test(key) ? 
+                          shiftNumbers[['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'ß', '´'].indexOf(key)] :
+                          shiftSpecial[key] || key.toUpperCase()
+                      ) : (
+                        isCapsLock && /^[a-zäöü]$/.test(key) ? key.toUpperCase() : key
+                      )}
+                    </Button>
+                  ))}
+                </Box>
+
+                {/* Spezielle Tasten rechts */}
+                {rowIndex === 0 && (
+                  <Button variant="outlined" onClick={onBackspace}
+                    sx={{ minWidth: '45px', height: '36px', fontSize: '0.6rem', flex: 'none',
+                      backgroundColor: '#ffebee', border: '1px solid #f44336', color: '#f44336' }}>
+                    <BackspaceIcon sx={{ fontSize: '1rem' }} />
+                  </Button>
+                )}
+
+                {rowIndex === 1 && (
+                  <Button variant="outlined" onClick={onEnter}
+                    sx={{ minWidth: '45px', height: '36px', fontSize: '0.6rem', flex: 'none',
+                      backgroundColor: '#e8f5e8', border: '1px solid #4caf50', color: '#4caf50' }}>
+                    <EnterIcon sx={{ fontSize: '1rem' }} />
+                  </Button>
+                )}
+              </Box>
+            ))}
+
+            {/* Leertaste-Reihe */}
+            <Box sx={{ display: 'flex', gap: '2px', width: '100%', mt: '2px' }}>
+              <Button variant="outlined" onClick={() => handleKeyPress('@')}
+                sx={{ minWidth: '30px', height: '32px', fontSize: '0.6rem', 
+                  backgroundColor: 'white', border: '1px solid #ccc' }}>
+                @
+              </Button>
+              <Button variant="outlined" onClick={() => handleKeyPress(' ')}
+                sx={{ flex: 1, height: '36px', fontSize: '0.6rem',
+                  backgroundColor: '#f9f9f9', border: '1px solid #ccc', mx: '2px' }}>
+                <SpaceBarIcon sx={{ fontSize: '1rem' }} />
+              </Button>
+              <Button variant="outlined" onClick={() => handleKeyPress('.')}
+                sx={{ minWidth: '35px', height: '32px', fontSize: '0.7rem',
+                  backgroundColor: 'white', border: '1px solid #ccc' }}>
+                .
+              </Button>
+            </Box>
+            </Box>
+          )}
+        </Box>
       </Paper>
     </Slide>
   );

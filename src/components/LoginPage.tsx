@@ -42,6 +42,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const usernameKeyboard = useVirtualKeyboard(username, setUsername, { autoShow: false });
   const passwordKeyboard = useVirtualKeyboard(password, setPassword, { autoShow: false });
 
+  // Prüfe ob eine Tastatur sichtbar ist
+  const isAnyKeyboardVisible = usernameKeyboard.isKeyboardVisible || passwordKeyboard.isKeyboardVisible;
+
   // Deaktiviere Auto-Logout auf der Login-Seite
   useEffect(() => {
     if (authContext?.disableAutoLogout) {
@@ -93,20 +96,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <Container
-      maxWidth="sm"
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        px: 2,
-        py: { xs: 2, sm: 3, md: 4 }, // Responsive padding
-        position: 'relative'
-      }}
-    >
-      {/* Back Button */}
+    <>
+      {/* Back Button - außerhalb des animierten Containers */}
       <IconButton
         onClick={handleBack}
         sx={{
@@ -124,7 +115,24 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         <ArrowBackIcon />
       </IconButton>
 
-      <Card
+      <Box
+        data-container="login"
+        sx={{
+          minHeight: '100vh',
+          width: '100vw',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          px: 2,
+          py: { xs: 2, sm: 3, md: 4 },
+          position: 'relative',
+          // Ganzer Container bewegt sich nach oben bei Tastatur
+          transform: isAnyKeyboardVisible ? 'translateY(-120px)' : 'translateY(0)',
+          transition: 'transform 0.3s ease-in-out',
+        }}
+      >
+        <Card
         sx={{
           width: '100%',
           maxWidth: 400,
@@ -145,9 +153,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             />
             <Typography variant="h4" component="h1" gutterBottom>
               Admin Login
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Photobooth Verwaltung
             </Typography>
           </Box>
 
@@ -217,8 +222,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           </Box>
         </CardContent>
       </Card>
+      </Box>
 
-      {/* OnScreenKeyboards - kompakt für Login-Seite */}
+      {/* OnScreenKeyboards - kompakt für Login-Seite, außerhalb der Box */}
       <OnScreenKeyboard
         isVisible={usernameKeyboard.isKeyboardVisible}
         onKeyPress={usernameKeyboard.handleKeyPress}
@@ -227,7 +233,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         onClose={usernameKeyboard.hideKeyboard}
         position="bottom"
         avoidCollision={true}
-        maxHeightPercent={20}
+        maxHeightPercent={30}
       />
       
       <OnScreenKeyboard
@@ -238,9 +244,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         onClose={passwordKeyboard.hideKeyboard}
         position="bottom"
         avoidCollision={true}
-        maxHeightPercent={20}
+        maxHeightPercent={30}
       />
-    </Container>
+    </>
   );
 };
 
