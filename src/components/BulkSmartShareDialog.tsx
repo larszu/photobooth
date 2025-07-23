@@ -172,6 +172,41 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
     </Box>
   );
 
+  const renderWifiQrCode = (qrCode: string, ssid: string, password: string) => (
+    <Box sx={{ textAlign: 'center' }}>
+      <Box sx={{
+        display: 'inline-block',
+        p: 2,
+        borderRadius: 3,
+        backgroundColor: '#f8f9fa',
+        border: '3px solid #e9ecef',
+        mb: 2
+      }}>
+        <Box 
+          component="img"
+          src={qrCode}
+          alt="WLAN QR-Code"
+          sx={{ 
+            display: 'block',
+            width: '250px',
+            height: '250px',
+            mb: 2
+          }}
+        />
+        
+        {/* WLAN Details direkt im QR-Code Container */}
+        <Box sx={{ textAlign: 'left', pt: 1, borderTop: '1px solid #e9ecef' }}>
+          <Typography variant="body2" sx={{ fontSize: '0.85rem', mb: 0.5, color: 'text.secondary' }}>
+            <strong>SSID:</strong> {ssid}
+          </Typography>
+          <Typography variant="body2" sx={{ fontSize: '0.85rem', color: 'text.secondary' }}>
+            <strong>Passwort:</strong> {password}
+          </Typography>
+        </Box>
+      </Box>
+    </Box>
+  );
+
   return (
     <Dialog 
       open={open} 
@@ -234,23 +269,15 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
                   {shareData.wifiConfig.enabled && shareData.wifiQrCode ? (
                     <Box>
                       <Typography variant="h6" fontWeight="bold" mb={3} color="primary.main">
-                        Mit Fotobox verbinden
+                        Mit Fotobox-WLAN verbinden
                       </Typography>
-                      {renderQrCode(
+                      {renderWifiQrCode(
                         shareData.wifiQrCode,
-                        '',
-                        ''
+                        shareData.wifiConfig.ssid,
+                        shareData.wifiConfig.password || (shareData.wifiConfig.hasPassword ? '[Passwort nicht verfügbar]' : 'Kein Passwort')
                       )}
                       
-                      {/* WLAN Details */}
-                      <Box sx={{ mt: 2, mb: 3 }}>
-                        <Typography variant="body1" fontWeight="bold" mb={1}>
-                          SSID: {shareData.wifiConfig.ssid}
-                        </Typography>
-                        <Typography variant="body1" fontWeight="bold" mb={2}>
-                          Passwort: {shareData.wifiConfig.password || (shareData.wifiConfig.hasPassword ? '[Passwort nicht verfügbar]' : 'Kein Passwort')}
-                        </Typography>
-                      </Box>
+                      <Box sx={{ mb: 3 }}></Box>
 
                       <Button
                         variant="contained"
