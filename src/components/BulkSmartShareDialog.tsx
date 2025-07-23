@@ -195,7 +195,7 @@ const BulkSmartShareDialog: React.FC<BulkSmartShareDialogProps> = ({ open, onClo
         />
         
         {/* WLAN Details direkt im QR-Code Container */}
-        <Box sx={{ textAlign: 'left', pt: 1, borderTop: '1px solid #e9ecef' }}>
+        <Box sx={{ textAlign: 'center', pt: 1, borderTop: '1px solid #e9ecef' }}>
           <Typography variant="body2" sx={{ fontSize: '0.85rem', mb: 0.5, color: 'text.secondary' }}>
             <strong>SSID:</strong> {ssid}
           </Typography>
