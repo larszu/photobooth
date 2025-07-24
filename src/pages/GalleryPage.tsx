@@ -92,32 +92,38 @@ const GalleryPage: React.FC = () => {
   // Sortier-Funktion für Fotos
   const sortedPhotos = React.useMemo(() => {
     return [...photos].sort((a, b) => {
-      // Extrahiere Datum aus Dateiname (photo-YYYY-MM-DDTHH-MM-SS-SSSZ.jpg oder YYYYMMDD_*)
-      const getDateFromFilename = (filename: string): string => {
+      // Extrahiere Datum/Zeit aus Dateiname für genaue Sortierung
+      const getDateTimeFromFilename = (filename: string): string => {
         // Format: photo-2025-07-07T21-52-44-051Z.jpg
         const isoMatch = filename.match(/photo-(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z)/);
         if (isoMatch) {
-          return isoMatch[1].replace(/T\d{2}-\d{2}-\d{2}-\d{3}Z/, ''); // Nur das Datum
+          // Konvertiere zu vergleichbarem Format: YYYYMMDDHHMMSSMMM
+          const fullDateTime = isoMatch[1]
+            .replace(/-/g, '')  // Entferne Bindestriche
+            .replace(/T/, '')   // Entferne T
+            .replace(/:/g, '')  // Entferne Doppelpunkte (falls vorhanden)
+            .replace(/Z/, '');  // Entferne Z
+          return fullDateTime;
         }
         
-        // Format: YYYYMMDD_*
+        // Format: YYYYMMDD_* (ohne Zeit)
         const dateMatch = filename.match(/^(\d{8})/);
         if (dateMatch) {
-          const dateStr = dateMatch[1];
-          return `${dateStr.slice(0,4)}-${dateStr.slice(4,6)}-${dateStr.slice(6,8)}`;
+          const dateStr = dateMatch[1] + '000000000'; // Pad mit Nullen für Tagesanfang
+          return dateStr;
         }
         
-        // Fallback: Dateiname alphabetisch
+        // Fallback: Dateiname alphabetisch (für demo-*.jpg etc.)
         return filename;
       };
       
-      const dateA = getDateFromFilename(a);
-      const dateB = getDateFromFilename(b);
+      const dateTimeA = getDateTimeFromFilename(a);
+      const dateTimeB = getDateTimeFromFilename(b);
       
       if (sortOrder === 'desc') {
-        return dateB.localeCompare(dateA); // Neueste zuerst
+        return dateTimeB.localeCompare(dateTimeA); // Neueste zuerst
       } else {
-        return dateA.localeCompare(dateB); // Älteste zuerst
+        return dateTimeA.localeCompare(dateTimeB); // Älteste zuerst
       }
     });
   }, [photos, sortOrder]);
