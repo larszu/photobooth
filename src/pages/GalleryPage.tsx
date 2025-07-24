@@ -332,11 +332,6 @@ const GalleryPage: React.FC = () => {
           </Box>
         ) : (
           <>
-            {/* Debug Info */}
-            <Typography variant="body2" sx={{ mb: 2, opacity: 0.7 }}>
-              Debug: {photos.length} Fotos geladen
-            </Typography>
-            
             {photos.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 8 }}>
                 <Typography variant="h4" sx={{ mb: 2 }}>
