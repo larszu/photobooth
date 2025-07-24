@@ -14,16 +14,12 @@ import {
   Snackbar,
   Alert,
   Tooltip,
-  Breadcrumbs,
-  Link,
   Checkbox
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import RestoreIcon from '@mui/icons-material/Restore';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
-import HomeIcon from '@mui/icons-material/Home';
-import DeleteIcon from '@mui/icons-material/Delete';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import { useNavigate } from 'react-router-dom';
 
@@ -313,33 +309,6 @@ const TrashPage: React.FC = () => {
         >
           🗑️ Papierkorb ({photos.length} Fotos)
         </Typography>
-
-        {/* Breadcrumb Navigation */}
-        <Breadcrumbs 
-          aria-label="breadcrumb" 
-          sx={{ mb: { xs: 2, md: 3 } }}
-        >
-          <Link 
-            underline="hover" 
-            color="inherit" 
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              navigate('/gallery');
-            }}
-            sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-          >
-            <HomeIcon fontSize="inherit" />
-            Home
-          </Link>
-          <Typography 
-            color="text.primary"
-            sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-          >
-            <DeleteIcon fontSize="inherit" />
-            Papierkorb
-          </Typography>
-        </Breadcrumbs>
 
         {loading ? (
           <Typography variant="h6" textAlign="center" sx={{ mt: 4 }}>
