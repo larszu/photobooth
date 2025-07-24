@@ -14,12 +14,18 @@ import {
   Snackbar,
   Alert,
   Tooltip,
-  Checkbox
+  Checkbox,
+  Fab,
+  Slide,
+  useTheme
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import RestoreIcon from '@mui/icons-material/Restore';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
+import SelectAllIcon from '@mui/icons-material/SelectAll';
+import DeselectIcon from '@mui/icons-material/Deselect';
+import CloseIcon from '@mui/icons-material/Close';
 import { useNavigate } from 'react-router-dom';
 
 interface TrashPhoto {
@@ -428,38 +434,6 @@ const TrashPage: React.FC = () => {
               ))}
             </Box>
 
-            {/* Aktionen für die Mehrfachauswahl */}
-            {selectionMode && (
-              <Box sx={{ mt: 2, display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
-                <Button 
-                  variant="contained" 
-                  color="primary"
-                  onClick={restoreSelectedPhotos}
-                  disabled={selectedPhotos.size === 0}
-                  startIcon={<RestoreIcon />}
-                >
-                  {`Ausgewählte ${selectedPhotos.size} wiederherstellen`}
-                </Button>
-                <Button 
-                  variant="outlined" 
-                  color="error"
-                  onClick={deleteSelectedPhotos}
-                  disabled={selectedPhotos.size === 0}
-                  startIcon={<DeleteForeverIcon />}
-                >
-                  {`Ausgewählte ${selectedPhotos.size} endgültig löschen`}
-                </Button>
-                <Button 
-                  variant="outlined" 
-                  color="error"
-                  onClick={() => setEmptyTrashConfirm(true)}
-                  startIcon={<DeleteSweepIcon />}
-                >
-                  Papierkorb leeren ({photos.length})
-                </Button>
-              </Box>
-            )}
-
             {/* Globale Aktionen */}
             {!selectionMode && photos.length > 0 && (
               <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
@@ -533,7 +507,199 @@ const TrashPage: React.FC = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Trash Selection Bar */}
+      {selectionMode && <TrashSelectionBar 
+        selectedCount={selectedPhotos.size}
+        totalCount={photos.length}
+        onSelectAll={() => setSelectedPhotos(new Set(photos.map(p => p.filename)))}
+        onDeselectAll={() => setSelectedPhotos(new Set())}
+        onDeleteSelected={() => {
+          if (selectedPhotos.size > 0) {
+            deleteSelectedPhotos();
+          }
+        }}
+        onRestoreSelected={() => {
+          if (selectedPhotos.size > 0) {
+            restoreSelectedPhotos();
+          }
+        }}
+        onClose={() => {
+          setSelectionMode(false);
+          setSelectedPhotos(new Set());
+        }}
+      />}
     </Box>
+  );
+};
+
+// TrashSelectionBar Komponente
+interface TrashSelectionBarProps {
+  selectedCount: number;
+  totalCount: number;
+  onSelectAll: () => void;
+  onDeselectAll: () => void;
+  onDeleteSelected: () => void;
+  onRestoreSelected: () => void;
+  onClose: () => void;
+}
+
+const TrashSelectionBar: React.FC<TrashSelectionBarProps> = ({
+  selectedCount,
+  totalCount,
+  onSelectAll,
+  onDeselectAll,
+  onDeleteSelected,
+  onRestoreSelected,
+  onClose
+}) => {
+  const theme = useTheme();
+
+  return (
+    <Slide direction="up" in={true} mountOnEnter unmountOnExit>
+      <Box
+        sx={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: theme.palette.primary.main,
+          color: 'white',
+          zIndex: 1300,
+          boxShadow: '0 -4px 12px rgba(0,0,0,0.3)',
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: { xs: '12px 16px', sm: '16px 24px' },
+            gap: { xs: 1, sm: 2 },
+            flexWrap: 'wrap'
+          }}
+        >
+          {/* Selection Info */}
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              fontWeight: 600,
+              fontSize: { xs: '1rem', sm: '1.25rem' },
+              minWidth: 'fit-content'
+            }}
+          >
+            {selectedCount} von {totalCount} ausgewählt
+          </Typography>
+
+          {/* Action Buttons */}
+          <Box sx={{ 
+            display: 'flex', 
+            gap: { xs: 1, sm: 2 }, 
+            alignItems: 'center',
+            flexWrap: 'wrap'
+          }}>
+            {/* Select All Button */}
+            {selectedCount < totalCount && (
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<SelectAllIcon />}
+                onClick={onSelectAll}
+                sx={{
+                  color: 'white',
+                  borderColor: 'rgba(255,255,255,0.5)',
+                  '&:hover': {
+                    borderColor: 'white',
+                    backgroundColor: 'rgba(255,255,255,0.1)'
+                  }
+                }}
+              >
+                Alle
+              </Button>
+            )}
+
+            {/* Deselect All Button */}
+            {selectedCount > 0 && (
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<DeselectIcon />}
+                onClick={onDeselectAll}
+                sx={{
+                  color: 'white',
+                  borderColor: 'rgba(255,255,255,0.5)',
+                  '&:hover': {
+                    borderColor: 'white',
+                    backgroundColor: 'rgba(255,255,255,0.1)'
+                  }
+                }}
+              >
+                Keine
+              </Button>
+            )}
+
+            {/* Restore Button */}
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<RestoreIcon />}
+              onClick={onRestoreSelected}
+              disabled={selectedCount === 0}
+              sx={{
+                backgroundColor: 'rgba(76, 175, 80, 0.8)',
+                color: 'white',
+                '&:hover': {
+                  backgroundColor: 'rgba(76, 175, 80, 1)'
+                },
+                '&:disabled': {
+                  backgroundColor: 'rgba(255,255,255,0.2)',
+                  color: 'rgba(255,255,255,0.5)'
+                }
+              }}
+            >
+              Wiederherstellen
+            </Button>
+
+            {/* Delete Button */}
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<DeleteForeverIcon />}
+              onClick={onDeleteSelected}
+              disabled={selectedCount === 0}
+              sx={{
+                backgroundColor: theme.palette.error.main,
+                color: 'white',
+                '&:hover': {
+                  backgroundColor: theme.palette.error.dark
+                },
+                '&:disabled': {
+                  backgroundColor: 'rgba(255,255,255,0.2)',
+                  color: 'rgba(255,255,255,0.5)'
+                }
+              }}
+            >
+              Löschen
+            </Button>
+
+            {/* Close Button */}
+            <Fab
+              size="small"
+              onClick={onClose}
+              sx={{
+                backgroundColor: 'rgba(255,255,255,0.2)',
+                color: 'white',
+                '&:hover': {
+                  backgroundColor: 'rgba(255,255,255,0.3)'
+                }
+              }}
+            >
+              <CloseIcon />
+            </Fab>
+          </Box>
+        </Box>
+      </Box>
+    </Slide>
   );
 };
 
