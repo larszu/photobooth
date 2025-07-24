@@ -1,21 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
+  Container, 
   Box, 
   Typography, 
+  Grid, 
   Card, 
-  CardActionArea, 
   CardMedia, 
-  CircularProgress, 
+  CardActionArea,
   AppBar, 
   Toolbar, 
   IconButton, 
   Button,
-  Breadcrumbs,
   Link,
   Checkbox,
   Snackbar,
-  Alert
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -217,42 +218,15 @@ const FolderGalleryPage: React.FC = () => {
         {selectionMode ? 'Abbrechen' : 'Auswählen'}
       </Button>
       
-      <Box 
-        sx={{ 
-          flex: 1,
-          p: { xs: 1, sm: 2, md: 3 },
-          maxWidth: '100vw',
+      <Box
+        sx={{
+          minHeight: '100vh',
+          p: { xs: 2, md: 3 },
+          backgroundColor: '#f5f5f5',
           overflow: 'hidden',
           pt: { xs: 8, sm: 10 } // Platz für die freistehenden Buttons
         }}
       >
-        {/* Breadcrumb Navigation */}
-        <Breadcrumbs 
-          aria-label="breadcrumb" 
-          sx={{ mb: { xs: 2, md: 3 } }}
-        >
-          <Link 
-            underline="hover" 
-            color="inherit" 
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              navigate('/gallery');
-            }}
-            sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-          >
-            <HomeIcon fontSize="inherit" />
-            Foto-Ordner
-          </Link>
-          <Typography 
-            color="text.primary"
-            sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-          >
-            <FolderIcon fontSize="inherit" />
-            {folderDisplayName}
-          </Typography>
-        </Breadcrumbs>
-
         {loading ? (
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
             <CircularProgress size={60} />
