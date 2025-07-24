@@ -11,8 +11,6 @@ import {
   Toolbar, 
   IconButton, 
   Button, 
-  Breadcrumbs, 
-  Link,
   Checkbox,
   Snackbar,
   Alert
@@ -20,8 +18,6 @@ import {
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import HomeIcon from '@mui/icons-material/Home';
-import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
 import PhotoSelectionBar from '../components/PhotoSelectionBar';
 import BulkSmartShareDialog from '../components/BulkSmartShareDialog';
 import { AuthContext } from '../context/AuthContext';
@@ -330,33 +326,6 @@ const GalleryPage: React.FC = () => {
           pt: { xs: 8, sm: 10 } // Platz für die freistehenden Buttons
         }}
       >
-        {/* Breadcrumb Navigation */}
-        <Breadcrumbs 
-          aria-label="breadcrumb" 
-          sx={{ mb: { xs: 2, md: 3 } }}
-        >
-          <Link 
-            underline="hover" 
-            color="inherit" 
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              navigate('/gallery');
-            }}
-            sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-          >
-            <HomeIcon fontSize="inherit" />
-            Foto-Ordner
-          </Link>
-          <Typography 
-            color="text.primary"
-            sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-          >
-            <PhotoLibraryIcon fontSize="inherit" />
-            Alle Fotos
-          </Typography>
-        </Breadcrumbs>
-
         {loading ? (
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
             <CircularProgress size={60} />
