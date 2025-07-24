@@ -16,7 +16,6 @@ import {
   Alert
 } from '@mui/material';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
-import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PhotoSelectionBar from '../components/PhotoSelectionBar';
 import BulkSmartShareDialog from '../components/BulkSmartShareDialog';
@@ -264,58 +263,32 @@ const GalleryPage: React.FC = () => {
         <ArrowBackIcon sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
       </IconButton>
       
-      <Box
+      <Button 
+        onClick={() => setSelectionMode(!selectionMode)}
         sx={{
           position: 'fixed',
           top: { xs: 16, sm: 20 },
           right: { xs: 16, sm: 20 },
           zIndex: 1000,
-          display: 'flex',
-          gap: { xs: 1, sm: 2 }
+          px: { xs: 2, sm: 3 },
+          py: { xs: 1, sm: 1.5 },
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          color: '#fff',
+          backdropFilter: 'blur(8px)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          borderRadius: 2,
+          fontSize: { xs: '0.8rem', sm: '0.9rem' },
+          fontWeight: 500,
+          textTransform: 'none',
+          '&:hover': { 
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            transform: 'scale(1.05)'
+          },
+          transition: 'all 0.2s'
         }}
       >
-        <Button 
-          onClick={() => setSelectionMode(!selectionMode)}
-          sx={{
-            px: { xs: 2, sm: 3 },
-            py: { xs: 1, sm: 1.5 },
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            color: '#fff',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            borderRadius: 2,
-            fontSize: { xs: '0.8rem', sm: '0.9rem' },
-            fontWeight: 500,
-            textTransform: 'none',
-            '&:hover': { 
-              backgroundColor: 'rgba(0, 0, 0, 0.8)',
-              transform: 'scale(1.05)'
-            },
-            transition: 'all 0.2s'
-          }}
-        >
-          {selectionMode ? 'Abbrechen' : 'Auswählen'}
-        </Button>
-        
-        <IconButton 
-          onClick={() => navigate('/admin')}
-          sx={{
-            width: { xs: 48, sm: 56 },
-            height: { xs: 48, sm: 56 },
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            color: '#fff',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            '&:hover': { 
-              backgroundColor: 'rgba(0, 0, 0, 0.8)',
-              transform: 'scale(1.05)'
-            },
-            transition: 'all 0.2s'
-          }}
-        >
-          <AdminPanelSettingsIcon sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
-        </IconButton>
-      </Box>
+        {selectionMode ? 'Abbrechen' : 'Auswählen'}
+      </Button>
       
       <Box 
         sx={{ 
