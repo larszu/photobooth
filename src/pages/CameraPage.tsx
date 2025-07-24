@@ -261,7 +261,7 @@ const CameraPage: React.FC = () => {
                 }}
                 onClick={(shooting || countdown !== null) ? undefined : handleShoot}
               >
-                {countdown !== null ? countdown : (shooting ? '📸' : '')}
+                {countdown !== null ? countdown : ''}
               </Box>
             </Box>
           </Box>
