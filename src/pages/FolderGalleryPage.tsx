@@ -251,7 +251,7 @@ const FolderGalleryPage: React.FC = () => {
               </Box>
             ) : (
               <>
-                <Typography variant="h5" sx={{ mb: 3, fontWeight: 600 }}>
+                <Typography variant="h5" sx={{ mb: 3, fontWeight: 600, textAlign: 'center' }}>
                   {photos.length} {photos.length === 1 ? 'Foto' : 'Fotos'} vom {folderDisplayName}
                 </Typography>
                 
