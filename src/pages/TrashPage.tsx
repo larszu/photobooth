@@ -342,20 +342,6 @@ const TrashPage: React.FC = () => {
           </Box>
         ) : (
           <>
-            {/* Info Banner */}
-            <Box sx={{ 
-              mb: 3, 
-              p: 2, 
-              bgcolor: 'info.light', 
-              borderRadius: 1,
-              color: 'info.contrastText'
-            }}>
-              <Typography variant="body2">
-                💡 Fotos im Papierkorb können wiederhergestellt oder permanent gelöscht werden.
-                Um alle Fotos permanent zu löschen, nutzen Sie den "Papierkorb leeren" Button.
-              </Typography>
-            </Box>
-
             {/* Photo Grid */}
             <Box 
               sx={{ 
