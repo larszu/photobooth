@@ -428,9 +428,6 @@
                             <a href="${downloadUrl}" class="btn btn-primary" download="${displayFilename}">
                                 💾 Herunterladen
                             </a>
-                            <button class="btn btn-secondary" onclick="sharePhoto('${photoId}', '${filename}')">
-                                📤 Teilen
-                            </button>
                         </div>
                     </div>
                 `;
@@ -517,29 +514,59 @@
             }
         }
 
-        function sharePhoto(photoId, filename) {
-            const photoUrl = `${window.location.origin}/api/photos/${encodeURIComponent(filename)}`;
-            
-            if (navigator.share) {
-                navigator.share({
-                    title: `Photobooth Foto: ${filename}`,
-                    text: 'Schau dir dieses Foto von der Photobooth an!',
-                    url: photoUrl
-                }).catch(console.error);
-            } else {
-                // Fallback: Copy to clipboard
-                navigator.clipboard.writeText(photoUrl).then(() => {
-                    showNotification('📋 Link wurde in die Zwischenablage kopiert!');
-                }).catch(() => {
-                    // Fallback for older browsers
-                    const textArea = document.createElement('textarea');
-                    textArea.value = photoUrl;
-                    document.body.appendChild(textArea);
-                    textArea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textArea);
-                    showNotification('📋 Link wurde in die Zwischenablage kopiert!');
-                });
+        async function shareToiOS(imageUrl, filename) {
+            try {
+                showNotification('📱 Bereite Foto für iOS vor...');
+                
+                // Fetch the image as blob
+                const response = await fetch(imageUrl);
+                if (!response.ok) {
+                    throw new Error('Fehler beim Laden des Bildes');
+                }
+                
+                const blob = await response.blob();
+                
+                // Check if Web Share API is available and supports files
+                if (navigator.share && navigator.canShare) {
+                    // Create file from blob
+                    const file = new File([blob], filename, { 
+                        type: blob.type || 'image/jpeg',
+                        lastModified: Date.now()
+                    });
+                    
+                    // Try to share the file directly
+                    const shareData = {
+                        title: `📸 Photobooth Foto`,
+                        text: `Foto von der Photobooth - Tippe "In Fotos speichern" zum direkten Speichern in der Galerie`,
+                        files: [file]
+                    };
+                    
+                    if (navigator.canShare(shareData)) {
+                        await navigator.share(shareData);
+                        showNotification('📱 iOS Share-Menü geöffnet!');
+                        return;
+                    }
+                }
+                
+                // Fallback for browsers without Web Share API
+                showNotification('📱 Web Share nicht verfügbar - nutze normalen Download');
+                
+                // Create download link as fallback
+                const downloadUrl = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = filename;
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // Clean up the blob URL
+                setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+                
+            } catch (error) {
+                console.error('Error sharing to iOS:', error);
+                showNotification('❌ Fehler beim iOS Download');
             }
         }
 

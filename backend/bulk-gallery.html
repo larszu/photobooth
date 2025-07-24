@@ -428,7 +428,7 @@
                             <a href="${downloadUrl}" class="btn btn-primary" download="${displayFilename}">
                                 💾 Herunterladen
                             </a>
-                            <button class="btn btn-secondary" onclick="sharePhoto('${photoId}', '${filename}')">
+                            <button class="btn btn-secondary" onclick="shareImageFile('${downloadUrl}', '${filename}')">
                                 📤 Teilen
                             </button>
                         </div>
@@ -517,30 +517,147 @@
             }
         }
 
-        function sharePhoto(photoId, filename) {
-            const photoUrl = `${window.location.origin}/api/photos/${encodeURIComponent(filename)}`;
+        async function shareImageFile(imageUrl, filename) {
+            try {
+                showNotification('📸 Lade Bild für das Teilen...');
+                
+                // Fetch the image as blob
+                const response = await fetch(imageUrl);
+                if (!response.ok) {
+                    throw new Error('Fehler beim Laden des Bildes');
+                }
+                
+                const blob = await response.blob();
+                
+                // Check if Web Share API is available and supports files
+                if (navigator.share && navigator.canShare) {
+                    // Create file from blob
+                    const file = new File([blob], filename, { 
+                        type: blob.type || 'image/jpeg',
+                        lastModified: Date.now()
+                    });
+                    
+                    // Try to share the file directly
+                    const shareData = {
+                        title: `📸 Photobooth Foto`,
+                        text: `Foto von der Photobooth`,
+                        files: [file]
+                    };
+                    
+                    if (navigator.canShare(shareData)) {
+                        await navigator.share(shareData);
+                        showNotification('📤 Foto erfolgreich geteilt!');
+                        return;
+                    }
+                }
+                
+                // Fallback: Create download link and trigger download, then show share instructions
+                showNotification('📱 Foto wird heruntergeladen...');
+                
+                // Create download link
+                const downloadUrl = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = filename;
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // Clean up the blob URL
+                setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+                
+                // Show instructions for sharing the downloaded file
+                showDownloadInstructions(filename);
+                
+            } catch (error) {
+                console.error('Error sharing image file:', error);
+                showNotification('❌ Fehler beim Laden des Bildes');
+            }
+        }
+        
+        function showDownloadInstructions(filename) {
+            // Create instruction modal
+            const modal = document.createElement('div');
+            modal.className = 'image-modal';
+            modal.innerHTML = `
+                <div class="modal-backdrop" onclick="closeShareModal()"></div>
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>📤 Foto geteilt: ${filename}</h3>
+                        <button class="modal-close" onclick="closeShareModal()">✕</button>
+                    </div>
+                    <div class="modal-body" style="text-align: center; padding: 30px;">
+                        <div style="font-size: 3em; margin-bottom: 20px;">✅</div>
+                        <p style="margin-bottom: 20px; font-size: 1.2em;">
+                            <strong>Foto wurde heruntergeladen!</strong>
+                        </p>
+                        <p style="margin-bottom: 20px; font-size: 0.9em; line-height: 1.6;">
+                            Das Foto ist jetzt in Ihren Downloads gespeichert.<br>
+                            Sie können es nun in jeder App teilen:
+                        </p>
+                        <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; margin: 20px 0;">
+                            <p style="font-size: 0.9em; line-height: 1.8; margin: 0;">
+                                📱 <strong>Mobil:</strong> Öffnen Sie Ihre Galerie und teilen Sie das Foto<br>
+                                💻 <strong>Desktop:</strong> Das Foto ist in Ihrem Downloads-Ordner
+                            </p>
+                        </div>
+                        <button class="btn btn-primary" onclick="closeShareModal()" style="font-size: 1em; padding: 12px 24px;">
+                            ✅ Verstanden
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
             
-            if (navigator.share) {
-                navigator.share({
-                    title: `Photobooth Foto: ${filename}`,
-                    text: 'Schau dir dieses Foto von der Photobooth an!',
-                    url: photoUrl
-                }).catch(console.error);
-            } else {
-                // Fallback: Copy to clipboard
-                navigator.clipboard.writeText(photoUrl).then(() => {
+            // Auto-close after 5 seconds
+            setTimeout(() => {
+                closeShareModal();
+            }, 5000);
+        }
+        
+        function closeShareModal() {
+            const modal = document.querySelector('.image-modal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+        
+        function copyToClipboard(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
                     showNotification('📋 Link wurde in die Zwischenablage kopiert!');
                 }).catch(() => {
-                    // Fallback for older browsers
-                    const textArea = document.createElement('textarea');
-                    textArea.value = photoUrl;
-                    document.body.appendChild(textArea);
-                    textArea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textArea);
-                    showNotification('📋 Link wurde in die Zwischenablage kopiert!');
+                    fallbackCopyToClipboard(text);
                 });
+            } else {
+                fallbackCopyToClipboard(text);
             }
+        }
+        
+        function fallbackCopyToClipboard(text) {
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showNotification('📋 Link wurde in die Zwischenablage kopiert!');
+                } else {
+                    showNotification('❌ Kopieren fehlgeschlagen. Bitte manuell kopieren: ' + text);
+                }
+            } catch (err) {
+                showNotification('❌ Kopieren nicht unterstützt. URL: ' + text);
+            }
+            
+            document.body.removeChild(textArea);
         }
 
         function showNotification(message) {
