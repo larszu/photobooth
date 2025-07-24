@@ -335,56 +335,6 @@ const AdminPage: React.FC = () => {
       >
         <ArrowBackIcon sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
       </IconButton>
-      
-      <Box
-        sx={{
-          position: 'fixed',
-          top: { xs: 16, sm: 20 },
-          right: { xs: 16, sm: 20 },
-          zIndex: 1000,
-          display: 'flex',
-          gap: { xs: 1, sm: 2 }
-        }}
-      >
-        <IconButton 
-          onClick={() => navigate('/trash', { state: { fromInternal: true } })}
-          title="Papierkorb"
-          sx={{
-            width: { xs: 48, sm: 56 },
-            height: { xs: 48, sm: 56 },
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            color: '#fff',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            '&:hover': { 
-              backgroundColor: 'rgba(0, 0, 0, 0.8)',
-              transform: 'scale(1.05)'
-            },
-            transition: 'all 0.2s'
-          }}
-        >
-          <RestoreFromTrashIcon sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
-        </IconButton>
-        
-        <IconButton 
-          onClick={handleLogout}
-          sx={{
-            width: { xs: 48, sm: 56 },
-            height: { xs: 48, sm: 56 },
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            color: '#fff',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            '&:hover': { 
-              backgroundColor: 'rgba(0, 0, 0, 0.8)',
-              transform: 'scale(1.05)'
-            },
-            transition: 'all 0.2s'
-          }}
-        >
-          <LogoutIcon sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
-        </IconButton>
-      </Box>
 
       <Box sx={{ 
         minHeight: '100vh', 
