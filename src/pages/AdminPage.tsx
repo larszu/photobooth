@@ -108,6 +108,26 @@ const AdminPage: React.FC = () => {
     }
   }, [isAnyKeyboardVisible]);
 
+  // Lade aktuelle Brightness beim Laden der Seite
+  useEffect(() => {
+    const loadCurrentBrightness = async () => {
+      try {
+        const res = await fetch('/api/display/brightness', {
+          method: 'GET',
+          credentials: 'include'
+        });
+        const data = await res.json();
+        if (data.success && typeof data.brightness === 'number') {
+          setBrightness(data.brightness);
+        }
+      } catch (error) {
+        console.error('Error loading brightness:', error);
+      }
+    };
+    
+    loadCurrentBrightness();
+  }, []);
+
   // Lade aktuelle Branding-Daten beim Komponenten-Start
   const loadBrandingData = async () => {
     try {
@@ -311,15 +331,24 @@ const AdminPage: React.FC = () => {
     try {
       const res = await fetch('/api/display/brightness', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
         body: JSON.stringify({ brightness: value })
       });
       const data = await res.json();
-      if (!data.success) {
-        console.error('Failed to set brightness:', data.error);
+      if (data.success) {
         setSnackbar({ 
           open: true, 
-          message: 'Fehler beim Ändern der Helligkeit', 
+          message: data.message || `Helligkeit auf ${value}% gesetzt`, 
+          severity: 'success' 
+        });
+      } else {
+        console.error('Failed to set brightness:', data.message);
+        setSnackbar({ 
+          open: true, 
+          message: data.message || 'Fehler beim Ändern der Helligkeit', 
           severity: 'error' 
         });
       }
@@ -327,7 +356,7 @@ const AdminPage: React.FC = () => {
       console.error('Error setting brightness:', error);
       setSnackbar({ 
         open: true, 
-        message: 'Fehler beim Ändern der Helligkeit', 
+        message: 'Fehler beim Ändern der Helligkeit: ' + (error as Error).message, 
         severity: 'error' 
       });
     }
