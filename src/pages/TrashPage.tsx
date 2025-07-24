@@ -324,7 +324,7 @@ const TrashPage: React.FC = () => {
             color: 'text.primary'
           }}
         >
-          🗑️ Papierkorb ({photos.length} Fotos)
+          Papierkorb ({photos.length} Fotos)
         </Typography>
 
         {loading ? (
