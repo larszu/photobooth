@@ -311,15 +311,8 @@ const AdminPage: React.FC = () => {
   };
 
   return (
-    <Box sx={{ 
-      minHeight: '100vh', 
-      display: 'flex', 
-      flexDirection: 'column',
-      // Ganzer Container bewegt sich nach oben bei Tastatur
-      transform: isAnyKeyboardVisible ? 'translateY(-60px)' : 'translateY(0)',
-      transition: 'transform 0.3s ease-in-out',
-    }}>
-      {/* Freistehende Buttons */}
+    <>
+      {/* Freistehende Buttons - außerhalb des transformierten Containers */}
       <IconButton 
         onClick={() => navigate('/gallery')}
         sx={{
@@ -392,6 +385,15 @@ const AdminPage: React.FC = () => {
           <LogoutIcon sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
         </IconButton>
       </Box>
+
+      <Box sx={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        flexDirection: 'column',
+        // Ganzer Container bewegt sich nach oben bei Tastatur
+        transform: isAnyKeyboardVisible ? 'translateY(-60px)' : 'translateY(0)',
+        transition: 'transform 0.3s ease-in-out',
+      }}>
       
       <Box 
         sx={{ 
@@ -822,6 +824,7 @@ const AdminPage: React.FC = () => {
         maxHeightPercent={50}
       />
     </Box>
+    </>
   );
 };
 
