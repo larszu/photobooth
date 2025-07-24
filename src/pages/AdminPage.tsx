@@ -3,7 +3,6 @@ import { Box, Typography, IconButton, Button, TextField, Snackbar, Alert, Toggle
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RestoreFromTrashIcon from '@mui/icons-material/RestoreFromTrash';
-import WifiIcon from '@mui/icons-material/Wifi';
 import BrandingWatermarkIcon from '@mui/icons-material/BrandingWatermark';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
 import UploadIcon from '@mui/icons-material/Upload';
@@ -18,8 +17,6 @@ import { useTheme } from '../context/ThemeContext';
 import OnScreenKeyboard from '../components/OnScreenKeyboard';
 
 const AdminPage: React.FC = () => {
-  const [ssid, setSsid] = useState('');
-  const [password, setPassword] = useState('');
   const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [brandingType, setBrandingType] = useState<'logo' | 'text'>('text');
@@ -39,45 +36,30 @@ const AdminPage: React.FC = () => {
   const { darkMode, toggleDarkMode } = useTheme();
 
   // Virtual Keyboard Hook - eine für alle Felder
-  const [activeField, setActiveField] = useState<'ssid' | 'password' | 'brandingText' | null>(null);
+  const [activeField, setActiveField] = useState<'brandingText' | null>(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   const handleKeyPress = (key: string) => {
-    if (activeField === 'ssid') {
-      setSsid(prev => prev + key);
-    } else if (activeField === 'password') {
-      setPassword(prev => prev + key);
-    } else if (activeField === 'brandingText') {
+    if (activeField === 'brandingText') {
       setBrandingText(prev => prev + key);
     }
   };
 
   const handleBackspace = () => {
-    if (activeField === 'ssid') {
-      setSsid(prev => prev.slice(0, -1));
-    } else if (activeField === 'password') {
-      setPassword(prev => prev.slice(0, -1));
-    } else if (activeField === 'brandingText') {
+    if (activeField === 'brandingText') {
       setBrandingText(prev => prev.slice(0, -1));
     }
   };
 
   const handleEnter = () => {
-    if (activeField === 'ssid') {
-      // Wechsle zum Passwort-Feld
-      setActiveField('password');
-    } else if (activeField === 'password') {
-      // Schließe Tastatur
-      setKeyboardVisible(false);
-      setActiveField(null);
-    } else if (activeField === 'brandingText') {
+    if (activeField === 'brandingText') {
       // Schließe Tastatur
       setKeyboardVisible(false);
       setActiveField(null);
     }
   };
 
-  const showKeyboardForField = (field: 'ssid' | 'password' | 'brandingText') => {
+  const showKeyboardForField = (field: 'brandingText') => {
     setActiveField(field);
     setKeyboardVisible(true);
   };
@@ -171,20 +153,6 @@ const AdminPage: React.FC = () => {
     return () => clearInterval(interval);
   }, [lastBrandingTimestamp]);
 
-  // Lade aktuelle WLAN-Konfiguration beim Komponenten-Start
-  React.useEffect(() => {
-    fetch('/api/wifi/config')
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setSsid(data.config.ssid || '');
-          // Smart Share ist immer aktiviert
-          console.log('Current WiFi config:', data.config);
-        }
-      })
-      .catch(err => console.error('Error loading WiFi config:', err));
-  }, []);
-
   // Lade aktuelle Display-Helligkeit beim Komponenten-Start
   React.useEffect(() => {
     fetch('/api/display/brightness')
@@ -197,32 +165,6 @@ const AdminPage: React.FC = () => {
       })
       .catch(err => console.error('Error loading display brightness:', err));
   }, []);
-
-  const handleWifiSave = async () => {
-    try {
-      const res = await fetch('/api/wifi/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          ssid, 
-          password, 
-          enabled: true // Smart Share ist immer aktiviert
-        })
-      });
-      const data = await res.json();
-      setSnackbar({ 
-        open: true, 
-        message: data.message || 'WLAN-Konfiguration gespeichert', 
-        severity: data.success ? 'success' : 'error' 
-      });
-    } catch (error) {
-      setSnackbar({ 
-        open: true, 
-        message: 'Fehler beim Speichern der Konfiguration', 
-        severity: 'error' 
-      });
-    }
-  };
 
   const handleDeleteAll = async () => {
     try {
@@ -523,82 +465,6 @@ const AdminPage: React.FC = () => {
           </Box>
         </Box>
 
-        {/* WLAN Section */}
-        <Typography 
-          variant="h6" 
-          gutterBottom
-          sx={{ fontSize: { xs: '1.2rem', md: '1.5rem' } }}
-        >
-          📶 Smart Share WLAN
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Konfiguriere WLAN-Zugangsdaten für automatische Verbindung über QR-Code
-        </Typography>
-        
-        <TextField 
-          label="WLAN-Name (SSID)" 
-          value={ssid} 
-          onChange={e => setSsid(e.target.value)} 
-          fullWidth 
-          margin="normal"
-          placeholder="z.B. Photobooth-WLAN"
-          InputProps={{ startAdornment: <WifiIcon sx={{ mr: 1 }} /> }}
-          sx={{
-            '& .MuiInputBase-root': {
-              fontSize: { xs: '1rem', md: '1.1rem' }
-            }
-          }}
-          onFocus={() => showKeyboardForField('ssid')}
-        />
-        <TextField 
-          label="WLAN-Passwort" 
-          value={password} 
-          onChange={e => setPassword(e.target.value)} 
-          fullWidth 
-          margin="normal" 
-          type="password"
-          placeholder="Mindestens 8 Zeichen"
-          sx={{
-            '& .MuiInputBase-root': {
-              fontSize: { xs: '1rem', md: '1.1rem' }
-            }
-          }}
-          onFocus={() => showKeyboardForField('password')}
-        />
-        
-        <Box sx={{ 
-          mt: 2, 
-          p: 2, 
-          backgroundColor: 'rgba(76, 175, 80, 0.1)', 
-          borderRadius: 2,
-          border: '1px solid rgba(76, 175, 80, 0.3)'
-        }}>
-          <Typography variant="body2" color="success.main" fontWeight="bold">
-            📱 Smart Share Funktionen:
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            • QR-Code scannen verbindet automatisch mit WLAN<br/>
-            • Foto öffnet sich automatisch im Browser<br/>
-            • Direkter Download und Teilen möglich<br/>
-            • Funktioniert mit iOS und Android
-          </Typography>
-        </Box>
-
-        <Button 
-          variant="contained" 
-          color="primary" 
-          onClick={handleWifiSave} 
-          disabled={!ssid}
-          sx={{ 
-            mt: 2,
-            fontSize: { xs: '0.9rem', md: '1rem' },
-            py: { xs: 1, md: 1.5 },
-            px: { xs: 2, md: 3 }
-          }}
-        >
-          WLAN speichern
-        </Button>
-        
         {/* Fotos löschen Section */}
         <Box sx={{ mt: { xs: 3, md: 4 } }}>
           <Typography 
