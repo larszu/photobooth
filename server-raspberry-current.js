@@ -1509,7 +1509,7 @@ app.post('/api/folders/:folderName/trash', (req, res) => {
 // Bulk Gallery Page - Mobile-optimierte Seite für mehrere Fotos
 app.get('/bulk-gallery', (req, res) => {
   try {
-    const bulkGalleryPath = path.join(__dirname, 'bulk-gallery.html');
+    const bulkGalleryPath = path.join(__dirname, 'backend', 'bulk-gallery.html');
     res.sendFile(bulkGalleryPath);
   } catch (error) {
     console.error('❌ Error serving bulk gallery page:', error);
