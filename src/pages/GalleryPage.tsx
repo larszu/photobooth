@@ -342,20 +342,25 @@ const GalleryPage: React.FC = () => {
                 </Typography>
               </Box>
             ) : (
-              <Box 
-                sx={{ 
-                  display: 'grid',
-                  gridTemplateColumns: {
-                    xs: 'repeat(2, 1fr)',
-                    sm: 'repeat(3, 1fr)',
-                    md: 'repeat(4, 1fr)',
-                    lg: 'repeat(5, 1fr)',
-                    xl: 'repeat(6, 1fr)'
-                  },
-                  gap: { xs: 1, sm: 2, md: 3 },
-                  width: '100%'
-                }}
-              >
+              <>
+                <Typography variant="h5" sx={{ mb: 3, fontWeight: 600, textAlign: 'center' }}>
+                  {photos.length} {photos.length === 1 ? 'Foto' : 'Fotos'} gesamt
+                </Typography>
+                
+                <Box 
+                  sx={{ 
+                    display: 'grid',
+                    gridTemplateColumns: {
+                      xs: 'repeat(2, 1fr)',
+                      sm: 'repeat(3, 1fr)',
+                      md: 'repeat(4, 1fr)',
+                      lg: 'repeat(5, 1fr)',
+                      xl: 'repeat(6, 1fr)'
+                    },
+                    gap: { xs: 1, sm: 2, md: 3 },
+                    width: '100%'
+                  }}
+                >
                 {photos.map((photo) => (
                   <Card 
                     key={photo}
@@ -429,7 +434,8 @@ const GalleryPage: React.FC = () => {
                     </CardActionArea>
                   </Card>
                 ))}
-              </Box>
+                </Box>
+              </>
             )}
             
             {/* Foto aufnehmen Button - nur wenn nicht im Auswahlmodus */}
