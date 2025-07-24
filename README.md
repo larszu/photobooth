@@ -5,15 +5,15 @@ Eine vollständige Fotobox-Lösung für Events und Hochzeiten mit React Frontend
 ## 🎯 Features
 
 - **Touch-optimierte Benutzeroberfläche** für einfache Bedienung
-- **Hardware-Button** für Foto-Auslösung (GPIO Pin 17)
+- **Hardware-Button** für Foto-Auslösung (GPIO Pin 17 & 3V)
 - **Professionelle Kamera-Integration** mit gphoto2
 - **Galerie-System** mit Tagesordnern
 - **QR-Code Sharing** für sofortiges Teilen
 - **Admin-Panel** für Verwaltung und Konfiguration
 - **Papierkorb-System** für versehentlich gelöschte Fotos
-- **Branding-Unterstützung** (Logo und Text)
+- **Branding-Unterstützung** (Logo und Text upload)
 - **WLAN-Hotspot** für Gäste-Zugriff
-- **Offline-Betrieb** ohne Internet erforderlich
+- **Offline-Betrieb** kein Internet erforderlich
 
 ## 🔧 Hardware Setup
 
@@ -22,11 +22,11 @@ Eine vollständige Fotobox-Lösung für Events und Hochzeiten mit React Frontend
 1. **Raspberry Pi 5 Model B** (empfohlen: 4GB RAM)
 2. **MicroSD-Karte** (mindestens 32GB, Class 10)
 3. **Offizielles Raspberry Pi Netzteil** (27W USB-C)
-4. **DSLR-Kamera** (getestet mit Sony Alpha-A7r)
-5. **USB-C zu USB-A Kabel** für Kamera-Verbindung
+4. **Kamera** (getestet mit Sony Alpha-A7r)
+5. **Micro USB zu USB-A Kabel** für Kamera-Verbindung
 6. **Hardware-Button** (optional, für physische Auslösung)
 7. **Jumper-Kabel** für GPIO-Verbindung
-8. **7" Touchscreen** (optional, für All-in-One Lösung)
+8. **Touchscreen**
 
 ### GPIO Hardware-Button Setup
 
@@ -459,7 +459,7 @@ pkill chromium-browser
 /home/pi/photobooth/start-kiosk.sh &
 ```
 
-### Admin-Zugangsdaten
+### Standard Admin-Zugangsdaten
 
 - **Benutzername**: `admin`
 - **Passwort**: `photobooth2025`
@@ -608,7 +608,7 @@ sudo netstat -tlnp | grep :5173
 sudo systemctl status photobooth
 ```
 
-## 📞 Support
+## Support
 
 Bei Problemen oder Fragen:
 
