@@ -258,6 +258,33 @@ const TrashPage: React.FC = () => {
           gap: 1,
         }}
       >
+        {/* Papierkorb leeren Button */}
+        {photos.length > 0 && !selectionMode && (
+          <Button
+            onClick={() => setEmptyTrashConfirm(true)}
+            variant="contained"
+            startIcon={<DeleteSweepIcon />}
+            sx={{
+              bgcolor: 'rgba(244, 67, 54, 0.9)',
+              backdropFilter: 'blur(10px)',
+              boxShadow: 2,
+              color: 'white',
+              '&:hover': {
+                bgcolor: 'rgba(244, 67, 54, 1)',
+              },
+              px: { xs: 2, sm: 3 },
+              py: { xs: 1.5, sm: 2 },
+              fontSize: { xs: '0.8rem', sm: '0.9rem' },
+              fontWeight: 500,
+              textTransform: 'none',
+              minWidth: 'auto',
+              height: { xs: 48, sm: 56 },
+            }}
+          >
+            Leeren ({photos.length})
+          </Button>
+        )}
+
         {/* Multi-Select Toggle */}
         {photos.length > 0 && (
           <Button
@@ -433,21 +460,6 @@ const TrashPage: React.FC = () => {
                 </Card>
               ))}
             </Box>
-
-            {/* Globale Aktionen */}
-            {!selectionMode && photos.length > 0 && (
-              <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
-                <Button 
-                  variant="outlined" 
-                  color="error"
-                  onClick={() => setEmptyTrashConfirm(true)}
-                  startIcon={<DeleteSweepIcon />}
-                  size="large"
-                >
-                  Papierkorb leeren ({photos.length})
-                </Button>
-              </Box>
-            )}
           </>
         )}
       </Box>
