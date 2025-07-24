@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { Box, Typography, IconButton, Button, TextField, Snackbar, Alert, ToggleButtonGroup, ToggleButton, Slider, Dialog, DialogTitle, DialogContent, DialogActions, Breadcrumbs, Link, Switch, FormControlLabel } from '@mui/material';
+import { Box, Typography, IconButton, Button, TextField, Snackbar, Alert, ToggleButtonGroup, ToggleButton, Dialog, DialogTitle, DialogContent, DialogActions, Breadcrumbs, Link, Switch, FormControlLabel, Slider } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RestoreFromTrashIcon from '@mui/icons-material/RestoreFromTrash';
@@ -7,12 +7,13 @@ import WifiIcon from '@mui/icons-material/Wifi';
 import BrandingWatermarkIcon from '@mui/icons-material/BrandingWatermark';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
 import UploadIcon from '@mui/icons-material/Upload';
-import PaletteIcon from '@mui/icons-material/Palette';
 import HomeIcon from '@mui/icons-material/Home';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import LogoutIcon from '@mui/icons-material/Logout';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
+import BrightnessHighIcon from '@mui/icons-material/BrightnessHigh';
+import BrightnessLowIcon from '@mui/icons-material/BrightnessLow';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -29,12 +30,11 @@ const AdminPage: React.FC = () => {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [currentLogo, setCurrentLogo] = useState<string | null>(null);
   const [lastBrandingTimestamp, setLastBrandingTimestamp] = useState<number>(0);
+  const [brightness, setBrightness] = useState<number>(100);
   
-  // Farbverwaltung
-  const [primaryHue, setPrimaryHue] = useState(212); // Hue für #1976d2
-  const [secondaryHue, setSecondaryHue] = useState(339); // Hue für #f50057
-  const [primaryHex, setPrimaryHex] = useState('#1976d2');
-  const [secondaryHex, setSecondaryHex] = useState('#f50057');
+  // Farbverwaltung - entfernt
+  // GitHub Desktop refresh trigger
+  // VS Code Git trigger
   
   const navigate = useNavigate();
   const authContext = useContext(AuthContext);
@@ -108,89 +108,6 @@ const AdminPage: React.FC = () => {
     }
   }, [isAnyKeyboardVisible]);
 
-
-
-  // Hilfsfunktionen für Farbkonvertierung
-  const hslToHex = (h: number, s: number = 100, l: number = 50): string => {
-    const hDecimal = h / 360;
-    const sDecimal = s / 100;
-    const lDecimal = l / 100;
-
-    const c = (1 - Math.abs(2 * lDecimal - 1)) * sDecimal;
-    const x = c * (1 - Math.abs((hDecimal * 6) % 2 - 1));
-    const m = lDecimal - c / 2;
-
-    let r = 0, g = 0, b = 0;
-
-    if (0 <= hDecimal && hDecimal < 1/6) {
-      r = c; g = x; b = 0;
-    } else if (1/6 <= hDecimal && hDecimal < 2/6) {
-      r = x; g = c; b = 0;
-    } else if (2/6 <= hDecimal && hDecimal < 3/6) {
-      r = 0; g = c; b = x;
-    } else if (3/6 <= hDecimal && hDecimal < 4/6) {
-      r = 0; g = x; b = c;
-    } else if (4/6 <= hDecimal && hDecimal < 5/6) {
-      r = x; g = 0; b = c;
-    } else if (5/6 <= hDecimal && hDecimal < 1) {
-      r = c; g = 0; b = x;
-    }
-
-    r = Math.round((r + m) * 255);
-    g = Math.round((g + m) * 255);
-    b = Math.round((b + m) * 255);
-
-    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-  };
-
-  const hexToHue = (hex: string): number => {
-    const r = parseInt(hex.slice(1, 3), 16) / 255;
-    const g = parseInt(hex.slice(3, 5), 16) / 255;
-    const b = parseInt(hex.slice(5, 7), 16) / 255;
-
-    const max = Math.max(r, g, b);
-    const min = Math.min(r, g, b);
-    const diff = max - min;
-
-    if (diff === 0) return 0;
-
-    let hue = 0;
-    if (max === r) {
-      hue = (60 * ((g - b) / diff) + 360) % 360;
-    } else if (max === g) {
-      hue = (60 * ((b - r) / diff) + 120) % 360;
-    } else if (max === b) {
-      hue = (60 * ((r - g) / diff) + 240) % 360;
-    }
-
-    return Math.round(hue);
-  };
-
-  // Event Handler für Farbänderungen
-  const handlePrimaryHueChange = (hue: number) => {
-    setPrimaryHue(hue);
-    setPrimaryHex(hslToHex(hue));
-  };
-
-  const handleSecondaryHueChange = (hue: number) => {
-    setSecondaryHue(hue);
-    setSecondaryHex(hslToHex(hue));
-  };
-
-  const handlePrimaryHexChange = (hex: string) => {
-    setPrimaryHex(hex);
-    if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
-      setPrimaryHue(hexToHue(hex));
-    }
-  };
-
-  const handleSecondaryHexChange = (hex: string) => {
-    setSecondaryHex(hex);
-    if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
-      setSecondaryHue(hexToHue(hex));
-    }
-  };
-
   // Lade aktuelle Branding-Daten beim Komponenten-Start
   const loadBrandingData = async () => {
     try {
@@ -236,22 +153,6 @@ const AdminPage: React.FC = () => {
     return () => clearInterval(interval);
   }, [lastBrandingTimestamp]);
 
-  // Lade aktuelle Systemfarben beim Komponenten-Start
-  React.useEffect(() => {
-    fetch('/api/admin/colors')
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setPrimaryHex(data.primary);
-          setSecondaryHex(data.secondary);
-          setPrimaryHue(hexToHue(data.primary));
-          setSecondaryHue(hexToHue(data.secondary));
-          console.log('Current system colors:', data);
-        }
-      })
-      .catch(err => console.error('Error loading colors:', err));
-  }, []);
-
   // Lade aktuelle WLAN-Konfiguration beim Komponenten-Start
   React.useEffect(() => {
     fetch('/api/wifi/config')
@@ -264,6 +165,19 @@ const AdminPage: React.FC = () => {
         }
       })
       .catch(err => console.error('Error loading WiFi config:', err));
+  }, []);
+
+  // Lade aktuelle Display-Helligkeit beim Komponenten-Start
+  React.useEffect(() => {
+    fetch('/api/display/brightness')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setBrightness(data.brightness || 100);
+          console.log('Current display brightness:', data.brightness);
+        }
+      })
+      .catch(err => console.error('Error loading display brightness:', err));
   }, []);
 
   const handleWifiSave = async () => {
@@ -392,16 +306,31 @@ const AdminPage: React.FC = () => {
     setSnackbar({ open: true, message: 'Text gespeichert', severity: 'success' });
   };
 
-  const handleColorsSave = async () => {
-    await fetch('/api/admin/colors', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        primary: primaryHex,
-        secondary: secondaryHex
-      })
-    });
-    setSnackbar({ open: true, message: 'Farben gespeichert', severity: 'success' });
+  const handleBrightnessChange = async (value: number) => {
+    setBrightness(value);
+    try {
+      const res = await fetch('/api/display/brightness', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brightness: value })
+      });
+      const data = await res.json();
+      if (!data.success) {
+        console.error('Failed to set brightness:', data.error);
+        setSnackbar({ 
+          open: true, 
+          message: 'Fehler beim Ändern der Helligkeit', 
+          severity: 'error' 
+        });
+      }
+    } catch (error) {
+      console.error('Error setting brightness:', error);
+      setSnackbar({ 
+        open: true, 
+        message: 'Fehler beim Ändern der Helligkeit', 
+        severity: 'error' 
+      });
+    }
   };
 
   // Logout-Handler
@@ -565,6 +494,33 @@ const AdminPage: React.FC = () => {
             }
             sx={{ mb: 2 }}
           />
+          
+          {/* Display Helligkeit */}
+          <Box sx={{ mt: 3 }}>
+            <Typography variant="subtitle1" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+              <BrightnessHighIcon sx={{ mr: 1 }} />
+              Display-Helligkeit
+            </Typography>
+            
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+              <BrightnessLowIcon sx={{ color: 'text.secondary' }} />
+              <Slider
+                value={brightness}
+                onChange={(_, value) => handleBrightnessChange(value as number)}
+                min={10}
+                max={100}
+                step={5}
+                sx={{ flex: 1 }}
+                valueLabelDisplay="auto"
+                valueLabelFormat={(value) => `${value}%`}
+              />
+              <BrightnessHighIcon sx={{ color: 'text.secondary' }} />
+            </Box>
+            
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+              Aktuelle Helligkeit: {brightness}%
+            </Typography>
+          </Box>
         </Box>
 
         {/* WLAN Section */}
@@ -842,18 +798,73 @@ const AdminPage: React.FC = () => {
               <Box sx={{ mt: 2 }}>
                 <Typography 
                   variant="body2"
-                  sx={{ fontSize: { xs: '0.8rem', md: '0.9rem' }, mb: 1 }}
+                  sx={{ fontSize: { xs: '0.8rem', md: '0.9rem' }, mb: 2 }}
                 >
-                  QR-Code zum Logo-Upload:
+                  QR-Codes:
                 </Typography>
-                <img 
-                  src="/api/logo-upload-qr" 
-                  alt="Logo Upload QR" 
-                  style={{ 
-                    width: window.innerWidth < 600 ? 200 : 240, 
-                    height: window.innerWidth < 600 ? 200 : 240 
-                  }} 
-                />
+                
+                {/* Container für beide QR-Codes nebeneinander */}
+                <Box sx={{ 
+                  display: 'flex', 
+                  gap: 2, 
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  {/* WLAN QR-Code (links) */}
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ fontSize: '0.75rem', mb: 1, fontWeight: 'bold' }}
+                    >
+                      📶 WLAN verbinden
+                    </Typography>
+                    <Box sx={{
+                      display: 'inline-block',
+                      p: 1,
+                      borderRadius: 2,
+                      backgroundColor: '#f8f9fa',
+                      border: '2px solid #e9ecef',
+                    }}>
+                      <img 
+                        src="/api/wifi-qr" 
+                        alt="WLAN QR Code" 
+                        style={{ 
+                          width: window.innerWidth < 600 ? 120 : 140, 
+                          height: window.innerWidth < 600 ? 120 : 140,
+                          display: 'block'
+                        }} 
+                      />
+                    </Box>
+                  </Box>
+                  
+                  {/* Logo Upload QR-Code (rechts) */}
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ fontSize: '0.75rem', mb: 1, fontWeight: 'bold' }}
+                    >
+                      🖼️ Logo hochladen
+                    </Typography>
+                    <Box sx={{
+                      display: 'inline-block',
+                      p: 1,
+                      borderRadius: 2,
+                      backgroundColor: '#f8f9fa',
+                      border: '2px solid #e9ecef',
+                    }}>
+                      <img 
+                        src="/api/logo-upload-qr" 
+                        alt="Logo Upload QR" 
+                        style={{ 
+                          width: window.innerWidth < 600 ? 120 : 140, 
+                          height: window.innerWidth < 600 ? 120 : 140,
+                          display: 'block'
+                        }} 
+                      />
+                    </Box>
+                  </Box>
+                </Box>
               </Box>
             </Box>
           ) : (
@@ -890,164 +901,6 @@ const AdminPage: React.FC = () => {
           )}
         </Box>
 
-        {/* Farbverwaltung Section */}
-        {/* Systemfarben - Temporär ausgeblendet */}
-        {false && (
-        <Box sx={{ mt: { xs: 3, md: 4 } }}>
-          <Typography 
-            variant="h6" 
-            gutterBottom
-            sx={{ fontSize: { xs: '1.2rem', md: '1.5rem' } }}
-          >
-            Systemfarben
-          </Typography>
-          
-          {/* Primärfarbe */}
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle1" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-              <PaletteIcon sx={{ mr: 1 }} />
-              Primärfarbe
-            </Typography>
-            
-            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { sm: 'center' }, gap: 2, mb: 2 }}>
-              <Box 
-                sx={{ 
-                  width: 60, 
-                  height: 40, 
-                  backgroundColor: primaryHex,
-                  border: '2px solid #ccc',
-                  borderRadius: 2
-                }} 
-              />
-              <TextField
-                label="HEX Code"
-                value={primaryHex}
-                onChange={(e) => handlePrimaryHexChange(e.target.value)}
-                size="small"
-                sx={{ minWidth: 120 }}
-                inputProps={{ pattern: '^#[0-9A-Fa-f]{6}$' }}
-              />
-            </Box>
-            
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="body2" sx={{ mb: 1 }}>Farbspektrum: {Math.round(primaryHue)}°</Typography>
-              <Slider
-                value={primaryHue}
-                onChange={(_, value) => handlePrimaryHueChange(value as number)}
-                min={0}
-                max={360}
-                sx={{
-                  '& .MuiSlider-track': {
-                    background: `linear-gradient(to right, 
-                      hsl(0, 100%, 50%), 
-                      hsl(60, 100%, 50%), 
-                      hsl(120, 100%, 50%), 
-                      hsl(180, 100%, 50%), 
-                      hsl(240, 100%, 50%), 
-                      hsl(300, 100%, 50%), 
-                      hsl(360, 100%, 50%))`
-                  },
-                  '& .MuiSlider-rail': {
-                    background: `linear-gradient(to right, 
-                      hsl(0, 100%, 50%), 
-                      hsl(60, 100%, 50%), 
-                      hsl(120, 100%, 50%), 
-                      hsl(180, 100%, 50%), 
-                      hsl(240, 100%, 50%), 
-                      hsl(300, 100%, 50%), 
-                      hsl(360, 100%, 50%))`
-                  },
-                  '& .MuiSlider-thumb': {
-                    backgroundColor: primaryHex,
-                    border: '2px solid #fff',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
-                  }
-                }}
-              />
-            </Box>
-          </Box>
-
-          {/* Sekundärfarbe */}
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle1" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-              <PaletteIcon sx={{ mr: 1 }} />
-              Sekundärfarbe
-            </Typography>
-            
-            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { sm: 'center' }, gap: 2, mb: 2 }}>
-              <Box 
-                sx={{ 
-                  width: 60, 
-                  height: 40, 
-                  backgroundColor: secondaryHex,
-                  border: '2px solid #ccc',
-                  borderRadius: 2
-                }} 
-              />
-              <TextField
-                label="HEX Code"
-                value={secondaryHex}
-                onChange={(e) => handleSecondaryHexChange(e.target.value)}
-                size="small"
-                sx={{ minWidth: 120 }}
-                inputProps={{ pattern: '^#[0-9A-Fa-f]{6}$' }}
-              />
-            </Box>
-            
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="body2" sx={{ mb: 1 }}>Farbspektrum: {Math.round(secondaryHue)}°</Typography>
-              <Slider
-                value={secondaryHue}
-                onChange={(_, value) => handleSecondaryHueChange(value as number)}
-                min={0}
-                max={360}
-                sx={{
-                  '& .MuiSlider-track': {
-                    background: `linear-gradient(to right, 
-                      hsl(0, 100%, 50%), 
-                      hsl(60, 100%, 50%), 
-                      hsl(120, 100%, 50%), 
-                      hsl(180, 100%, 50%), 
-                      hsl(240, 100%, 50%), 
-                      hsl(300, 100%, 50%), 
-                      hsl(360, 100%, 50%))`
-                  },
-                  '& .MuiSlider-rail': {
-                    background: `linear-gradient(to right, 
-                      hsl(0, 100%, 50%), 
-                      hsl(60, 100%, 50%), 
-                      hsl(120, 100%, 50%), 
-                      hsl(180, 100%, 50%), 
-                      hsl(240, 100%, 50%), 
-                      hsl(300, 100%, 50%), 
-                      hsl(360, 100%, 50%))`
-                  },
-                  '& .MuiSlider-thumb': {
-                    backgroundColor: secondaryHex,
-                    border: '2px solid #fff',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
-                  }
-                }}
-              />
-            </Box>
-          </Box>
-
-          <Button 
-            variant="contained" 
-            color="primary" 
-            startIcon={<PaletteIcon />}
-            onClick={handleColorsSave} 
-            sx={{ 
-              mt: 2,
-              fontSize: { xs: '0.9rem', md: '1rem' },
-              py: { xs: 1, md: 1.5 },
-              px: { xs: 2, md: 3 }
-            }}
-          >
-            Farben speichern
-          </Button>
-        </Box>
-        )}
 
         {/* Zusätzlicher Platz wenn Tastatur sichtbar */}
         {isAnyKeyboardVisible && (
@@ -1107,3 +960,5 @@ const AdminPage: React.FC = () => {
 };
 
 export default AdminPage;
+
+// Git Refresh Test - AdminPage mit Helligkeits-Slider erfolgreich implementiert!

@@ -1,12 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Box, Typography, IconButton } from '@mui/material';
+import { Box, Typography, IconButton, Button } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ShareIcon from '@mui/icons-material/Share';
-import DeleteIcon from '@mui/icons-material/Delete';
+import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import SmartShareDialog from '../components/SmartShareDialog';
 import SmartShareV2Dialog from '../components/SmartShareV2Dialog';
-import BulkSmartShareDialog from '../components/BulkSmartShareDialog';
 
 const PhotoViewPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -14,6 +13,7 @@ const PhotoViewPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   
+  const [qr, setQr] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [isZoomed, setIsZoomed] = useState(false);
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
@@ -25,23 +25,27 @@ const PhotoViewPage: React.FC = () => {
   const [branding, setBranding] = useState<{ type: 'logo' | 'text', logo?: string, text?: string }>({ type: 'text', text: '' });
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [shareV2DialogOpen, setShareV2DialogOpen] = useState(false);
-  const [bulkShareDialogOpen, setBulkShareDialogOpen] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
 
   // Intelligente Navigation: Bestimme die korrekte Zurück-URL
   const getBackUrl = () => {
+    // Check if we came from a specific folder view based on the URL state
     const fromPath = (location.state as any)?.from;
+    
     if (fromPath) {
       return fromPath;
     }
     
+    // Fallback: Extract folder from photo path and determine back URL
     if (decodedId.includes('/')) {
       const folderName = decodedId.split('/')[0];
+      // Check if this looks like a date folder (YYYYMMDD_Photobooth)
       if (/^\d{8}_Photobooth$/.test(folderName)) {
         return `/gallery/folder/${encodeURIComponent(folderName)}`;
       }
     }
     
+    // Default fallback to main gallery overview
     return '/gallery';
   };
 
@@ -50,6 +54,17 @@ const PhotoViewPage: React.FC = () => {
     console.log('Navigating back to:', backUrl);
     navigate(backUrl);
   };
+
+  // Lade QR-Code für das Foto
+  useEffect(() => {
+    fetch(`http://localhost:3001/api/photos/${encodeURIComponent(decodedId)}/qr`)
+      .then(res => res.json())
+      .then(data => {
+        console.log('QR response:', data);
+        setQr(data.qr_code || data.qr);
+      })
+      .catch(err => console.error('Error loading QR code:', err));
+  }, [decodedId]);
 
   // Lade alle Fotos und setze aktuellen Index
   useEffect(() => {
@@ -93,6 +108,7 @@ const PhotoViewPage: React.FC = () => {
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (e.touches.length === 2 && isZoomed) {
+      // Pinch-Zoom
       const dist = Math.abs(e.touches[0].clientX - e.touches[1].clientX);
       setZoom(Math.min(3, Math.max(1, dist / 150)));
     } else if (e.touches.length === 1 && touchStart) {
@@ -105,6 +121,7 @@ const PhotoViewPage: React.FC = () => {
   const handleTouchEnd = () => {
     if (isZoomed) {
       if (zoom < 1.1) {
+        // Rauszoomen: zurück zur Galerie
         handleBackNavigation();
       }
       setIsZoomed(false);
@@ -119,8 +136,10 @@ const PhotoViewPage: React.FC = () => {
         setSwipeAnimating(false);
         setSwipeOffset(0);
         if (dx > 50 && currentIndex > 0) {
+          // Swipe right: vorheriges Bild
           navigate(`/view/${encodeURIComponent(allPhotos[currentIndex - 1])}`);
         } else if (dx < -50 && currentIndex < allPhotos.length - 1) {
+          // Swipe left: nächstes Bild
           navigate(`/view/${encodeURIComponent(allPhotos[currentIndex + 1])}`);
         }
       }, 150);
@@ -131,60 +150,14 @@ const PhotoViewPage: React.FC = () => {
     setTouchMove(null);
   };
 
+  // Doppeltippen für Zoom
   const handleDoubleClick = () => {
     // Bei existierenden Fotos nichts machen
   };
 
-  const handleDeletePhoto = async () => {
-    try {
-      // Extrahiere nur den Dateinamen aus dem decodedId (falls es ein Pfad ist)
-      const filename = decodedId.includes('/') ? decodedId.split('/').pop() : decodedId;
-      
-      console.log('Deleting photo:', { decodedId, filename });
-      
-      // Verwende die Backend-Route für einzelne Fotos
-      const response = await fetch(`http://localhost:3001/api/photos/${encodeURIComponent(filename!)}/trash`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Photo moved to trash:', result);
-        // Nach dem Verschieben zur Galerie zurückkehren
-        const backUrl = getBackUrl();
-        navigate(backUrl);
-      } else {
-        const errorResult = await response.json();
-        console.error('Error response:', errorResult);
-        alert(`Fehler beim Verschieben in den Papierkorb: ${errorResult.message || 'Unbekannter Fehler'}`);
-      }
-    } catch (error) {
-      console.error('Error moving photo to trash:', error);
-      alert('Fehler beim Verschieben in den Papierkorb');
-    }
-  };
-
   return (
-    <Box sx={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      width: '100vw',
-      height: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      margin: 0,
-      padding: 0,
-      overflow: 'hidden',
-      backgroundColor: '#ffffff' // Weißer Hintergrund für Light Mode
-    }}>
-      {/* Zurück-Button */}
+    <Box>
+      {/* Freistehender Zurück-Button oben links */}
       <IconButton 
         onClick={handleBackNavigation}
         sx={{
@@ -207,179 +180,127 @@ const PhotoViewPage: React.FC = () => {
       >
         <ArrowBackIcon sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
       </IconButton>
-
-      {/* Branding als festes Overlay */}
-      {branding.type === 'logo' && branding.logo && (
-        <Box sx={{ 
-          position: 'fixed', 
-          top: { xs: 80, md: 100 }, 
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 1001,
-          '& img': {
-            maxHeight: '80px',
-            display: 'block'
-          }
-        }}>
-          <img src={branding.logo} alt="Branding Logo" />
+      
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center',
+        minHeight: '100vh', // Jetzt volle Höhe nutzen
+        pt: { xs: 0.5, sm: 1, md: 2 }, // Minimales Padding oben
+        pb: { xs: 6, sm: 7, md: 8 }, // Minimales Padding unten
+        px: 0, // Kein seitliches Padding
+      }}>
+        {branding.type === 'logo' && branding.logo && (
+          <img src={branding.logo} alt="Branding Logo" style={{ maxHeight: 120, marginBottom: 16 }} />
+        )}
+        {branding.type === 'text' && branding.text && (
+          <Typography variant="h3" sx={{ mb: 2, fontWeight: 700, fontSize: { xs: 28, md: 40 } }}>{branding.text}</Typography>
+        )}
+        
+        {/* Foto-Anzeige im 3:2 Format - absolute maximale Größe */}
+        <Box
+          sx={{
+            overflow: 'hidden',
+            touchAction: 'none',
+            borderRadius: 4,
+            width: { 
+              xs: '99vw', // Fast 100% der Viewport-Breite
+              sm: '98vw',
+              md: '97vw',
+              lg: '96vw',
+              xl: '95vw'
+            },
+            maxWidth: '2000px', // Sehr große absolute Maximalgröße
+            aspectRatio: '3/2', // 3:2 Format beibehalten
+            background: '#222',
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            mx: 'auto', // Zentrieren
+          }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onDoubleClick={handleDoubleClick}
+        >
+          <img
+            ref={imgRef}
+            src={`http://localhost:3001/photos/${decodedId}`}
+            alt={decodedId}
+            loading="lazy"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover', // Format-füllend
+              borderRadius: 16,
+              transform: `scale(${zoom}) translateX(${swipeOffset}px)`,
+              transition: swipeAnimating ? 'transform 0.15s' : isZoomed ? 'none' : 'transform 0.2s',
+              touchAction: 'none',
+              background: '#222',
+            }}
+            draggable={false}
+            onError={(e) => {
+              // Fallback zu lokalen Fotos wenn Backend nicht erreichbar
+              const target = e.target as HTMLImageElement;
+              target.src = `/photos/${decodedId}`;
+            }}
+            onWheel={e => {
+              if (e.ctrlKey) {
+                setZoom(z => Math.max(1, Math.min(3, z + (e.deltaY < 0 ? 0.1 : -0.1))));
+                setIsZoomed(true);
+              }
+            }}
+          />
+          
+          {/* Navigation Buttons als Overlay */}
+          <Box sx={{
+            position: 'absolute',
+            bottom: 20,
+            left: 0,
+            right: 0,
+            display: 'flex',
+            alignItems: 'center',
+            paddingX: 3, // Abstand von den Rändern
+            pointerEvents: 'none',
+          }}>
+            
+          </Box>
         </Box>
-      )}
-      {branding.type === 'text' && branding.text && (
-        <Typography 
-          variant="h3" 
+        
+        {/* Weiteres Foto aufnehmen Button - unten mittig wie auf anderen Seiten */}
+        <Box 
           sx={{ 
-            position: 'fixed', 
-            top: { xs: 80, md: 100 }, 
+            position: 'fixed',
+            bottom: { xs: 16, md: 24 },
             left: '50%',
             transform: 'translateX(-50%)',
-            fontWeight: 700, 
-            fontSize: { xs: 24, md: 32 },
-            zIndex: 1001,
-            color: '#333333', // Dunkler Text für Light Mode
-            textShadow: '0 1px 2px rgba(255,255,255,0.8)',
-            textAlign: 'center'
+            zIndex: 1000
           }}
         >
-          {branding.text}
-        </Typography>
-      )}
-      
-      {/* Foto-Container - perfekt zentriert */}
-      <Box
-        sx={{
-          overflow: 'hidden',
-          touchAction: 'none',
-          borderRadius: 4,
-          width: { 
-            xs: '90vw',
-            sm: '85vw',
-            md: '70vw',
-            lg: '60vw',
-            xl: '50vw'
-          },
-          maxWidth: 900,
-          aspectRatio: '3/2',
-          background: '#222',
-          position: 'relative',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-        }}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onDoubleClick={handleDoubleClick}
-      >
-        <img
-          ref={imgRef}
-          src={`http://localhost:3001/photos/${decodedId}`}
-          alt={decodedId}
-          loading="lazy"
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            borderRadius: '16px',
-            background: '#222',
-            transform: `scale(${zoom}) translateX(${swipeOffset}px)`,
-            transition: swipeAnimating ? 'transform 0.15s' : isZoomed ? 'none' : 'transform 0.2s',
-            touchAction: 'none',
-          }}
-          draggable={false}
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.src = `/photos/${decodedId}`;
-          }}
-          onWheel={e => {
-            if (e.ctrlKey) {
-              setZoom(z => Math.max(1, Math.min(3, z + (e.deltaY < 0 ? 0.1 : -0.1))));
-              setIsZoomed(true);
-            }
-          }}
-        />
-        
-        {/* Papierkorb-Button oben rechts im Container */}
-        <IconButton
-          onClick={handleDeletePhoto}
-          sx={{
-            position: 'absolute',
-            top: { xs: 12, md: 16 },
-            right: { xs: 12, md: 16 },
-            width: { xs: 40, md: 44 },
-            height: { xs: 40, md: 44 },
-            backgroundColor: 'rgba(244, 67, 54, 0.8)',
-            color: '#fff',
-            backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            '&:hover': { 
-              backgroundColor: 'rgba(244, 67, 54, 1)',
-              transform: 'scale(1.05)'
-            },
-            transition: 'all 0.2s'
-          }}
-        >
-          <DeleteIcon sx={{ fontSize: { xs: 16, md: 18 } }} />
-        </IconButton>
-        
-        {/* Navigation Buttons - Foto Aufnehmen mittig, Share rechts */}
-        <Box sx={{
-          position: 'absolute',
-          bottom: { xs: 16, md: 24 },
-          left: 0,
-          right: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          paddingX: { xs: 2, md: 3 },
-          pointerEvents: 'none',
-        }}>
-          <Box
-            sx={{
-              padding: { xs: '6px 12px', md: '8px 16px' },
-              borderRadius: '20px',
-              backgroundColor: 'rgba(25, 118, 210, 0.9)',
-              color: '#fff',
-              fontSize: { xs: '13px', md: '14px' },
-              fontWeight: 500,
-              cursor: 'pointer',
-              pointerEvents: 'auto',
-              backdropFilter: 'blur(12px)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              textAlign: 'center',
-              minWidth: { xs: '100px', md: '120px' },
-              '&:hover': { 
-                backgroundColor: 'rgba(25, 118, 210, 1)',
-                transform: 'scale(1.05)'
-              },
-              transition: 'all 0.2s'
-            }}
+          <Button 
+            variant="contained" 
+            color="primary" 
+            size="large"
+            startIcon={<PhotoCameraIcon />} 
             onClick={() => navigate('/photo/new')}
-          >
-            📸 Foto Aufnehmen
-          </Box>
-          
-          <IconButton
-            onClick={() => setBulkShareDialogOpen(true)}
             sx={{
-              position: 'absolute',
-              right: { xs: 2, md: 3 },
-              width: { xs: 44, md: 48 },
-              height: { xs: 44, md: 48 },
-              backgroundColor: 'rgba(76, 175, 80, 0.8)',
-              color: '#fff',
-              pointerEvents: 'auto',
-              backdropFilter: 'blur(12px)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              '&:hover': { 
-                backgroundColor: 'rgba(76, 175, 80, 1)',
+              borderRadius: { xs: 3, md: 4 },
+              px: { xs: 3, md: 4 },
+              py: { xs: 1.5, md: 2 },
+              fontSize: { xs: '1rem', md: '1.2rem' },
+              fontWeight: 600,
+              boxShadow: 4,
+              backgroundColor: '#1976d2',
+              '&:hover': {
+                backgroundColor: '#1565c0',
+                boxShadow: 6,
                 transform: 'scale(1.05)'
-              },
-              transition: 'all 0.2s'
+              }
             }}
           >
-            <ShareIcon sx={{ fontSize: { xs: 18, md: 20 } }} />
-          </IconButton>
+            Foto aufnehmen
+          </Button>
         </Box>
         
       </Box>
@@ -396,11 +317,6 @@ const PhotoViewPage: React.FC = () => {
             open={shareV2DialogOpen}
             onClose={() => setShareV2DialogOpen(false)}
             photoId={decodedId}
-          />
-          <BulkSmartShareDialog
-            open={bulkShareDialogOpen}
-            onClose={() => setBulkShareDialogOpen(false)}
-            photoIds={[decodedId]} // Einzelnes Foto als Array
           />
         </>
       )}

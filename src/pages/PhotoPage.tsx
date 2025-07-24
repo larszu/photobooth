@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Typography, IconButton, Button, Dialog } from '@mui/material';
+import { Box, Typography, IconButton, Button, Dialog, Breadcrumbs, Link } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import HomeIcon from '@mui/icons-material/Home';
+import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import TimerIcon from '@mui/icons-material/Timer';
 import RemoveIcon from '@mui/icons-material/Remove';
 import AddIcon from '@mui/icons-material/Add';
@@ -117,40 +119,64 @@ const PhotoPage: React.FC = () => {
         flexDirection: 'column', 
         alignItems: 'center',
         minHeight: 'calc(100vh - 64px)',
-        maxWidth: '2000px',
+        maxWidth: '2000px', // Gleiche Maximalgröße wie PhotoViewPage
         margin: '0 auto',
-        px: 0,
-        pt: { xs: 0.5, sm: 1, md: 2 },
-        pb: { xs: 6, sm: 7, md: 8 },
+        px: 0, // Minimales horizontales Padding wie PhotoViewPage
+        pt: { xs: 0.5, sm: 1, md: 2 }, // Gleiche obere Abstände wie PhotoViewPage
+        pb: { xs: 6, sm: 7, md: 8 }, // Gleiche untere Abstände wie PhotoViewPage
       }}>
+        {/* Breadcrumb Navigation - ausgeblendet für gleiche Optik wie PhotoViewPage */}
+        <Breadcrumbs 
+          aria-label="breadcrumb" 
+          sx={{ 
+            display: 'none', // Versteckt für identische Optik wie PhotoViewPage
+            mb: { xs: 2, md: 3 }, 
+            alignSelf: 'flex-start', 
+            ml: { xs: 2, md: 2 } 
+          }}
+        >
+          <Link 
+            underline="hover" 
+            color="inherit" 
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              navigate('/gallery');
+            }}
+            sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+          >
+            <HomeIcon fontSize="inherit" />
+            Home
+          </Link>
+          <Typography 
+            color="text.primary"
+            sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+          >
+            <PhotoCameraIcon fontSize="inherit" />
+            Foto aufnehmen
+          </Typography>
+        </Breadcrumbs>
+
         {branding.type === 'logo' && branding.logo && (
-          <Box sx={{ mb: 2 }}>
-            <img 
-              src={branding.logo} 
-              alt="Branding Logo" 
-              style={{ maxHeight: '120px', display: 'block' }}
-            />
-          </Box>
+          <img src={branding.logo} alt="Branding Logo" style={{ maxHeight: 120, marginBottom: 16 }} />
         )}
         {branding.type === 'text' && branding.text && (
-          <Typography variant="h3" sx={{ mb: 2, fontWeight: 700, fontSize: { xs: 28, md: 40 } }}>
-            {branding.text}
-          </Typography>
+          <Typography variant="h3" sx={{ mb: 2, fontWeight: 700, fontSize: { xs: 28, md: 40 } }}>{branding.text}</Typography>
         )}
-        {/* Kamera-Vorschau im 3:2 Format - identische Größe wie PhotoViewPage */}
+        {/* Kamera-Vorschau im 3:2 Format - gleiche Größe wie PhotoViewPage */}
         <Box
           sx={{
             overflow: 'hidden',
             touchAction: 'none',
             borderRadius: 4,
             width: { 
-              xs: '90vw', // Exakt gleiche Größe wie PhotoViewPage
-              sm: '85vw',
-              md: '70vw',
-              lg: '60vw',
-              xl: '50vw'
+              xs: '99vw', // Gleiche Größe wie PhotoViewPage
+              sm: '98vw',
+              md: '97vw',
+              lg: '96vw',
+              xl: '95vw'
             },
-            maxWidth: 900, // Exakt gleiche Maximalgröße wie PhotoViewPage
+            maxWidth: '2000px', // Gleiche Maximalgröße wie PhotoViewPage
             aspectRatio: '3/2', // 3:2 Format wie PhotoViewPage
             background: '#222',
             position: 'relative',
@@ -158,7 +184,6 @@ const PhotoPage: React.FC = () => {
             alignItems: 'center',
             justifyContent: 'center',
             mx: 'auto', // Zentrieren
-            boxShadow: '0 8px 32px rgba(0,0,0,0.3)', // Gleicher Schatten wie PhotoViewPage
           }}
           onDoubleClick={handleDoubleClick}
         >
