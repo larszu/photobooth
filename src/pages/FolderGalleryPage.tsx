@@ -16,12 +16,16 @@ import {
   Checkbox,
   Snackbar,
   Alert,
-  CircularProgress
+  CircularProgress,
+  ToggleButton,
+  ToggleButtonGroup
 } from '@mui/material';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import FolderIcon from '@mui/icons-material/Folder';
 import HomeIcon from '@mui/icons-material/Home';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import PhotoSelectionBar from '../components/PhotoSelectionBar';
 import BulkSmartShareDialog from '../components/BulkSmartShareDialog';
 
@@ -37,6 +41,7 @@ const FolderGalleryPage: React.FC = () => {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
   const [folderDisplayName, setFolderDisplayName] = useState('');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc'); // desc = neueste zuerst
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, severity: 'success' | 'error' }>({ 
@@ -79,6 +84,56 @@ const FolderGalleryPage: React.FC = () => {
     loadFolderPhotos();
   }, [folderName, navigate]);
 
+  // Sortier-Funktion für Fotos
+  const sortedPhotos = React.useMemo(() => {
+    return [...photos].sort((a, b) => {
+      // Extrahiere Datum/Zeit aus Dateiname für genaue Sortierung
+      const getDateTimeFromFilename = (filename: string): string => {
+        // Format: photo-2025-07-07T21-52-44-051Z.jpg
+        const isoMatch = filename.match(/photo-(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z)/);
+        if (isoMatch) {
+          // Konvertiere zu vergleichbarem Format: YYYYMMDDHHMMSSMMM
+          const fullDateTime = isoMatch[1]
+            .replace(/-/g, '')  // Entferne Bindestriche
+            .replace(/T/, '')   // Entferne T
+            .replace(/:/g, '')  // Entferne Doppelpunkte (falls vorhanden)
+            .replace(/Z/, '');  // Entferne Z
+          return fullDateTime;
+        }
+        
+        // Format: YYYYMMDD_* (ohne Zeit)
+        const dateMatch = filename.match(/^(\d{8})/);
+        if (dateMatch) {
+          const dateStr = dateMatch[1] + '000000000'; // Pad mit Nullen für Tagesanfang
+          return dateStr;
+        }
+        
+        // Fallback: created timestamp wenn verfügbar, sonst Dateiname
+        if (a.created && b.created) {
+          return new Date(a.created).getTime().toString().padStart(17, '0');
+        }
+        
+        // Letzter Fallback: Dateiname alphabetisch
+        return filename;
+      };
+      
+      const dateTimeA = getDateTimeFromFilename(a.filename);
+      const dateTimeB = getDateTimeFromFilename(b.filename);
+      
+      if (sortOrder === 'desc') {
+        return dateTimeB.localeCompare(dateTimeA); // Neueste zuerst
+      } else {
+        return dateTimeA.localeCompare(dateTimeB); // Älteste zuerst
+      }
+    });
+  }, [photos, sortOrder]);
+
+  const handleSortChange = (_event: React.MouseEvent<HTMLElement>, newSortOrder: 'asc' | 'desc') => {
+    if (newSortOrder !== null) {
+      setSortOrder(newSortOrder);
+    }
+  };
+
   // Multi-Select Handler Functions
   const handlePhotoSelect = (photoFilename: string, event: React.MouseEvent) => {
     event.stopPropagation();
@@ -94,7 +149,7 @@ const FolderGalleryPage: React.FC = () => {
   };
 
   const handleSelectAll = () => {
-    setSelectedPhotos(new Set(photos.map(p => p.filename)));
+    setSelectedPhotos(new Set(sortedPhotos.map(p => p.filename)));
   };
 
   const handleDeselectAll = () => {
@@ -233,7 +288,7 @@ const FolderGalleryPage: React.FC = () => {
           </Box>
         ) : (
           <>
-            {photos.length === 0 ? (
+            {sortedPhotos.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 8 }}>
                 <Typography variant="h4" sx={{ mb: 2 }}>
                   Keine Fotos in diesem Ordner
@@ -251,9 +306,58 @@ const FolderGalleryPage: React.FC = () => {
               </Box>
             ) : (
               <>
-                <Typography variant="h5" sx={{ mb: 3, fontWeight: 600, textAlign: 'center' }}>
-                  {photos.length} {photos.length === 1 ? 'Foto' : 'Fotos'} vom {folderDisplayName}
-                </Typography>
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'flex-start',
+                  alignItems: 'center',
+                  mb: 3,
+                  gap: 3
+                }}>
+                  <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                    {sortedPhotos.length} {sortedPhotos.length === 1 ? 'Foto' : 'Fotos'} vom {folderDisplayName}
+                  </Typography>
+                  
+                  <ToggleButtonGroup
+                    value={sortOrder}
+                    exclusive
+                    onChange={handleSortChange}
+                    aria-label="Sortierung"
+                    size="small"
+                    sx={{ 
+                      '& .MuiToggleButton-root': {
+                        px: { xs: 1.5, md: 2 },
+                        py: { xs: 0.5, md: 1 },
+                        border: '1px solid',
+                        borderColor: 'primary.main',
+                        color: 'primary.main',
+                        '&.Mui-selected': {
+                          backgroundColor: 'primary.main',
+                          color: 'white',
+                          '&:hover': {
+                            backgroundColor: 'primary.dark',
+                          },
+                        },
+                        '&:hover': {
+                          backgroundColor: 'primary.light',
+                          color: 'white',
+                        },
+                      }
+                    }}
+                  >
+                    <ToggleButton value="desc" aria-label="Neueste zuerst">
+                      <ArrowDownwardIcon fontSize="small" sx={{ mr: 0.5 }} />
+                      <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                        Neueste
+                      </Typography>
+                    </ToggleButton>
+                    <ToggleButton value="asc" aria-label="Älteste zuerst">
+                      <ArrowUpwardIcon fontSize="small" sx={{ mr: 0.5 }} />
+                      <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                        Älteste
+                      </Typography>
+                    </ToggleButton>
+                  </ToggleButtonGroup>
+                </Box>
                 
                 <Box 
                   sx={{ 
@@ -269,7 +373,7 @@ const FolderGalleryPage: React.FC = () => {
                     width: '100%'
                   }}
                 >
-                  {photos.map((photo) => (
+                  {sortedPhotos.map((photo) => (
                     <Card 
                       key={photo.filename}
                       sx={{ 
@@ -388,7 +492,7 @@ const FolderGalleryPage: React.FC = () => {
       {selectionMode && (
         <PhotoSelectionBar
           selectedCount={selectedPhotos.size}
-          totalCount={photos.length}
+          totalCount={sortedPhotos.length}
           onSelectAll={handleSelectAll}
           onDeselectAll={handleDeselectAll}
           onMoveToTrash={handleMoveToTrash}
