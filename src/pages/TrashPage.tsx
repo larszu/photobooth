@@ -225,12 +225,15 @@ const TrashPage: React.FC = () => {
         <IconButton
           onClick={() => navigate(-1)}
           sx={{
-            bgcolor: 'rgba(255, 255, 255, 0.9)',
-            backdropFilter: 'blur(10px)',
-            boxShadow: 2,
-            '&:hover': {
-              bgcolor: 'rgba(255, 255, 255, 1)',
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            color: '#fff',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            '&:hover': { 
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              transform: 'scale(1.05)'
             },
+            transition: 'all 0.2s',
             width: { xs: 48, sm: 56 },
             height: { xs: 48, sm: 56 },
           }}
