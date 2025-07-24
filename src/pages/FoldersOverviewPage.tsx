@@ -482,7 +482,7 @@ const FoldersOverviewPage: React.FC = () => {
                               fontSize: { xs: '1.1rem', md: '1.25rem' }
                             }}
                           >
-                            📅 {folder.displayName}
+                            {folder.displayName}
                           </Typography>
                           
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
