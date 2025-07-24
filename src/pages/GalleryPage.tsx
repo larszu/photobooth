@@ -13,10 +13,14 @@ import {
   Button, 
   Checkbox,
   Snackbar,
-  Alert
+  Alert,
+  ToggleButton,
+  ToggleButtonGroup
 } from '@mui/material';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import PhotoSelectionBar from '../components/PhotoSelectionBar';
 import BulkSmartShareDialog from '../components/BulkSmartShareDialog';
 import { AuthContext } from '../context/AuthContext';
@@ -24,6 +28,7 @@ import { AuthContext } from '../context/AuthContext';
 const GalleryPage: React.FC = () => {
   const [photos, setPhotos] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc'); // desc = neueste zuerst
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, severity: 'success' | 'error' }>({ 
@@ -84,6 +89,45 @@ const GalleryPage: React.FC = () => {
     loadPhotos();
   }, []);
 
+  // Sortier-Funktion für Fotos
+  const sortedPhotos = React.useMemo(() => {
+    return [...photos].sort((a, b) => {
+      // Extrahiere Datum aus Dateiname (photo-YYYY-MM-DDTHH-MM-SS-SSSZ.jpg oder YYYYMMDD_*)
+      const getDateFromFilename = (filename: string): string => {
+        // Format: photo-2025-07-07T21-52-44-051Z.jpg
+        const isoMatch = filename.match(/photo-(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z)/);
+        if (isoMatch) {
+          return isoMatch[1].replace(/T\d{2}-\d{2}-\d{2}-\d{3}Z/, ''); // Nur das Datum
+        }
+        
+        // Format: YYYYMMDD_*
+        const dateMatch = filename.match(/^(\d{8})/);
+        if (dateMatch) {
+          const dateStr = dateMatch[1];
+          return `${dateStr.slice(0,4)}-${dateStr.slice(4,6)}-${dateStr.slice(6,8)}`;
+        }
+        
+        // Fallback: Dateiname alphabetisch
+        return filename;
+      };
+      
+      const dateA = getDateFromFilename(a);
+      const dateB = getDateFromFilename(b);
+      
+      if (sortOrder === 'desc') {
+        return dateB.localeCompare(dateA); // Neueste zuerst
+      } else {
+        return dateA.localeCompare(dateB); // Älteste zuerst
+      }
+    });
+  }, [photos, sortOrder]);
+
+  const handleSortChange = (_event: React.MouseEvent<HTMLElement>, newSortOrder: 'asc' | 'desc') => {
+    if (newSortOrder !== null) {
+      setSortOrder(newSortOrder);
+    }
+  };
+
   // Multi-Select Handler Functions
   const handlePhotoSelect = (photoName: string, event: React.MouseEvent) => {
     event.stopPropagation();
@@ -99,7 +143,7 @@ const GalleryPage: React.FC = () => {
   };
 
   const handleSelectAll = () => {
-    setSelectedPhotos(new Set(photos));
+    setSelectedPhotos(new Set(sortedPhotos));
   };
 
   const handleDeselectAll = () => {
@@ -316,9 +360,58 @@ const GalleryPage: React.FC = () => {
               </Box>
             ) : (
               <>
-                <Typography variant="h5" sx={{ mb: 3, fontWeight: 600, textAlign: 'center' }}>
-                  {photos.length} {photos.length === 1 ? 'Foto' : 'Fotos'} gesamt
-                </Typography>
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'flex-start',
+                  alignItems: 'center',
+                  mb: 3,
+                  gap: 3
+                }}>
+                  <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                    {sortedPhotos.length} {sortedPhotos.length === 1 ? 'Foto' : 'Fotos'} gesamt
+                  </Typography>
+                  
+                  <ToggleButtonGroup
+                    value={sortOrder}
+                    exclusive
+                    onChange={handleSortChange}
+                    aria-label="Sortierung"
+                    size="small"
+                    sx={{ 
+                      '& .MuiToggleButton-root': {
+                        px: { xs: 1.5, md: 2 },
+                        py: { xs: 0.5, md: 1 },
+                        border: '1px solid',
+                        borderColor: 'primary.main',
+                        color: 'primary.main',
+                        '&.Mui-selected': {
+                          backgroundColor: 'primary.main',
+                          color: 'white',
+                          '&:hover': {
+                            backgroundColor: 'primary.dark',
+                          },
+                        },
+                        '&:hover': {
+                          backgroundColor: 'primary.light',
+                          color: 'white',
+                        },
+                      }
+                    }}
+                  >
+                    <ToggleButton value="desc" aria-label="Neueste zuerst">
+                      <ArrowDownwardIcon fontSize="small" sx={{ mr: 0.5 }} />
+                      <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                        Neueste
+                      </Typography>
+                    </ToggleButton>
+                    <ToggleButton value="asc" aria-label="Älteste zuerst">
+                      <ArrowUpwardIcon fontSize="small" sx={{ mr: 0.5 }} />
+                      <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                        Älteste
+                      </Typography>
+                    </ToggleButton>
+                  </ToggleButtonGroup>
+                </Box>
                 
                 <Box 
                   sx={{ 
@@ -334,7 +427,7 @@ const GalleryPage: React.FC = () => {
                     width: '100%'
                   }}
                 >
-                {photos.map((photo) => (
+                {sortedPhotos.map((photo) => (
                   <Card 
                     key={photo}
                     sx={{ 
@@ -455,7 +548,7 @@ const GalleryPage: React.FC = () => {
       {selectionMode && (
         <PhotoSelectionBar
           selectedCount={selectedPhotos.size}
-          totalCount={photos.length}
+          totalCount={sortedPhotos.length}
           onSelectAll={handleSelectAll}
           onDeselectAll={handleDeselectAll}
           onMoveToTrash={handleMoveToTrash}
