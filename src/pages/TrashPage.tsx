@@ -20,7 +20,6 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import RestoreIcon from '@mui/icons-material/Restore';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
-import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import { useNavigate } from 'react-router-dom';
 
 interface TrashPhoto {
@@ -250,24 +249,6 @@ const TrashPage: React.FC = () => {
           gap: 1,
         }}
       >
-        {/* Admin Button */}
-        <IconButton
-          onClick={() => navigate('/admin', { state: { fromInternal: true } })}
-          title="Admin-Bereich"
-          sx={{
-            bgcolor: 'rgba(255, 255, 255, 0.9)',
-            backdropFilter: 'blur(10px)',
-            boxShadow: 2,
-            '&:hover': {
-              bgcolor: 'rgba(255, 255, 255, 1)',
-            },
-            width: { xs: 48, sm: 56 },
-            height: { xs: 48, sm: 56 },
-          }}
-        >
-          <AdminPanelSettingsIcon />
-        </IconButton>
-
         {/* Multi-Select Toggle */}
         {photos.length > 0 && (
           <Button
