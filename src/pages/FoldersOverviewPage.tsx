@@ -474,18 +474,17 @@ const FoldersOverviewPage: React.FC = () => {
                         )}
                         
                         <CardContent sx={{ p: { xs: 2, md: 3 } }}>
-                          <Typography 
-                            variant="h6" 
-                            sx={{ 
-                              fontWeight: 600,
-                              mb: 1,
-                              fontSize: { xs: '1.1rem', md: '1.25rem' }
-                            }}
-                          >
-                            {folder.displayName}
-                          </Typography>
-                          
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Typography 
+                              variant="h6" 
+                              sx={{ 
+                                fontWeight: 600,
+                                fontSize: { xs: '1.1rem', md: '1.25rem' }
+                              }}
+                            >
+                              {folder.displayName}
+                            </Typography>
+                            
                             <Chip 
                               icon={<PhotoLibraryIcon />}
                               label={`${folder.photoCount} ${folder.photoCount === 1 ? 'Foto' : 'Fotos'}`}
