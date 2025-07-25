@@ -21,7 +21,7 @@ import {
 } from '@mui/icons-material';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import OnScreenKeyboard from './OnScreenKeyboard';
+import OnScreenKeyboard from '../components/OnScreenKeyboard';
 
 interface LoginPageProps {
   onLoginSuccess?: () => void;

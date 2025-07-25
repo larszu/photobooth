@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { AuthContext } from '../context/AuthContext';
-import LoginPage from './LoginPage';
+import LoginPage from '../pages/LoginPage';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

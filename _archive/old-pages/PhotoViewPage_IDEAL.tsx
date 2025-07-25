@@ -30,18 +30,23 @@ const PhotoViewPage: React.FC = () => {
 
   // Intelligente Navigation: Bestimme die korrekte Zurück-URL
   const getBackUrl = () => {
+    // Check if we came from a specific folder view based on the URL state
     const fromPath = (location.state as any)?.from;
+    
     if (fromPath) {
       return fromPath;
     }
     
+    // Fallback: Extract folder from photo path and determine back URL
     if (decodedId.includes('/')) {
       const folderName = decodedId.split('/')[0];
+      // Check if this looks like a date folder (YYYYMMDD_Photobooth)
       if (/^\d{8}_Photobooth$/.test(folderName)) {
         return `/gallery/folder/${encodeURIComponent(folderName)}`;
       }
     }
     
+    // Default fallback to main gallery overview
     return '/gallery';
   };
 
@@ -135,35 +140,21 @@ const PhotoViewPage: React.FC = () => {
     // Bei existierenden Fotos nichts machen
   };
 
-  const handleDeletePhoto = async () => {
+  // Foto löschen
+  const handleDelete = async () => {
     try {
-      // Extrahiere nur den Dateinamen aus dem decodedId (falls es ein Pfad ist)
-      const filename = decodedId.includes('/') ? decodedId.split('/').pop() : decodedId;
-      
-      console.log('Deleting photo:', { decodedId, filename });
-      
-      // Verwende die Backend-Route für einzelne Fotos
-      const response = await fetch(`http://localhost:3001/api/photos/${encodeURIComponent(filename!)}/trash`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+      const response = await fetch(`http://localhost:3001/api/photos/${encodeURIComponent(decodedId)}`, {
+        method: 'DELETE'
       });
-      
+
       if (response.ok) {
-        const result = await response.json();
-        console.log('Photo moved to trash:', result);
-        // Nach dem Verschieben zur Galerie zurückkehren
-        const backUrl = getBackUrl();
-        navigate(backUrl);
+        // Nach dem Löschen zurück zur Galerie
+        handleBackNavigation();
       } else {
-        const errorResult = await response.json();
-        console.error('Error response:', errorResult);
-        alert(`Fehler beim Verschieben in den Papierkorb: ${errorResult.message || 'Unbekannter Fehler'}`);
+        console.error('Fehler beim Löschen des Fotos');
       }
     } catch (error) {
-      console.error('Error moving photo to trash:', error);
-      alert('Fehler beim Verschieben in den Papierkorb');
+      console.error('Error deleting photo:', error);
     }
   };
 
@@ -182,9 +173,9 @@ const PhotoViewPage: React.FC = () => {
       margin: 0,
       padding: 0,
       overflow: 'hidden',
-      backgroundColor: '#ffffff' // Weißer Hintergrund für Light Mode
+      backgroundColor: '#000'
     }}>
-      {/* Zurück-Button */}
+      {/* Zurück-Button oben links */}
       <IconButton 
         onClick={handleBackNavigation}
         sx={{
@@ -206,6 +197,30 @@ const PhotoViewPage: React.FC = () => {
         }}
       >
         <ArrowBackIcon sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
+      </IconButton>
+
+      {/* Papierkorb-Button oben rechts */}
+      <IconButton 
+        onClick={handleDelete}
+        sx={{
+          position: 'fixed',
+          top: { xs: 16, sm: 20 },
+          right: { xs: 16, sm: 20 },
+          zIndex: 1000,
+          width: { xs: 48, sm: 56 },
+          height: { xs: 48, sm: 56 },
+          backgroundColor: 'rgba(220, 53, 69, 0.7)',
+          color: '#fff',
+          backdropFilter: 'blur(8px)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          '&:hover': { 
+            backgroundColor: 'rgba(220, 53, 69, 0.8)',
+            transform: 'scale(1.05)'
+          },
+          transition: 'all 0.2s'
+        }}
+      >
+        <DeleteIcon sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
       </IconButton>
 
       {/* Branding als festes Overlay */}
@@ -235,8 +250,8 @@ const PhotoViewPage: React.FC = () => {
             fontWeight: 700, 
             fontSize: { xs: 24, md: 32 },
             zIndex: 1001,
-            color: '#333333', // Dunkler Text für Light Mode
-            textShadow: '0 1px 2px rgba(255,255,255,0.8)',
+            color: 'white',
+            textShadow: '0 2px 4px rgba(0,0,0,0.8)',
             textAlign: 'center'
           }}
         >
@@ -299,30 +314,7 @@ const PhotoViewPage: React.FC = () => {
           }}
         />
         
-        {/* Papierkorb-Button oben rechts im Container */}
-        <IconButton
-          onClick={handleDeletePhoto}
-          sx={{
-            position: 'absolute',
-            top: { xs: 12, md: 16 },
-            right: { xs: 12, md: 16 },
-            width: { xs: 40, md: 44 },
-            height: { xs: 40, md: 44 },
-            backgroundColor: 'rgba(244, 67, 54, 0.8)',
-            color: '#fff',
-            backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            '&:hover': { 
-              backgroundColor: 'rgba(244, 67, 54, 1)',
-              transform: 'scale(1.05)'
-            },
-            transition: 'all 0.2s'
-          }}
-        >
-          <DeleteIcon sx={{ fontSize: { xs: 16, md: 18 } }} />
-        </IconButton>
-        
-        {/* Navigation Buttons - Foto Aufnehmen mittig, Share rechts */}
+        {/* Navigation Buttons */}
         <Box sx={{
           position: 'absolute',
           bottom: { xs: 16, md: 24 },
@@ -330,10 +322,30 @@ const PhotoViewPage: React.FC = () => {
           right: 0,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
+          justifyContent: 'space-between',
           paddingX: { xs: 2, md: 3 },
           pointerEvents: 'none',
         }}>
+          <IconButton
+            onClick={handleBackNavigation}
+            sx={{
+              width: { xs: 44, md: 48 },
+              height: { xs: 44, md: 48 },
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              color: '#fff',
+              pointerEvents: 'auto',
+              backdropFilter: 'blur(12px)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              '&:hover': { 
+                backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                transform: 'scale(1.05)'
+              },
+              transition: 'all 0.2s'
+            }}
+          >
+            <ArrowBackIcon sx={{ fontSize: { xs: 18, md: 20 } }} />
+          </IconButton>
+          
           <Box
             sx={{
               padding: { xs: '6px 12px', md: '8px 16px' },
@@ -356,14 +368,13 @@ const PhotoViewPage: React.FC = () => {
             }}
             onClick={() => navigate('/photo/new')}
           >
-            📸 Foto Aufnehmen
+            📸 Neues Foto
           </Box>
           
+          {/* BulkShare Button unten rechts */}
           <IconButton
             onClick={() => setBulkShareDialogOpen(true)}
             sx={{
-              position: 'absolute',
-              right: { xs: 2, md: 3 },
               width: { xs: 44, md: 48 },
               height: { xs: 44, md: 48 },
               backgroundColor: 'rgba(76, 175, 80, 0.8)',
@@ -381,7 +392,6 @@ const PhotoViewPage: React.FC = () => {
             <ShareIcon sx={{ fontSize: { xs: 18, md: 20 } }} />
           </IconButton>
         </Box>
-        
       </Box>
       
       {/* Smart Share Dialogs */}
@@ -400,7 +410,7 @@ const PhotoViewPage: React.FC = () => {
           <BulkSmartShareDialog
             open={bulkShareDialogOpen}
             onClose={() => setBulkShareDialogOpen(false)}
-            photoIds={[decodedId]} // Einzelnes Foto als Array
+            photoIds={[decodedId]}
           />
         </>
       )}

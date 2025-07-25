@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from 'react';
+﻿import React, { useEffect, useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Box, 
@@ -11,16 +11,17 @@ import {
   Toolbar, 
   IconButton, 
   Button, 
+  Breadcrumbs, 
+  Link,
   Checkbox,
   Snackbar,
-  Alert,
-  ToggleButton,
-  ToggleButtonGroup
+  Alert
 } from '@mui/material';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
-import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import HomeIcon from '@mui/icons-material/Home';
+import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
 import PhotoSelectionBar from '../components/PhotoSelectionBar';
 import BulkSmartShareDialog from '../components/BulkSmartShareDialog';
 import { AuthContext } from '../context/AuthContext';
@@ -28,7 +29,6 @@ import { AuthContext } from '../context/AuthContext';
 const GalleryPage: React.FC = () => {
   const [photos, setPhotos] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc'); // desc = neueste zuerst
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, severity: 'success' | 'error' }>({ 
@@ -89,51 +89,6 @@ const GalleryPage: React.FC = () => {
     loadPhotos();
   }, []);
 
-  // Sortier-Funktion für Fotos
-  const sortedPhotos = React.useMemo(() => {
-    return [...photos].sort((a, b) => {
-      // Extrahiere Datum/Zeit aus Dateiname für genaue Sortierung
-      const getDateTimeFromFilename = (filename: string): string => {
-        // Format: photo-2025-07-07T21-52-44-051Z.jpg
-        const isoMatch = filename.match(/photo-(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z)/);
-        if (isoMatch) {
-          // Konvertiere zu vergleichbarem Format: YYYYMMDDHHMMSSMMM
-          const fullDateTime = isoMatch[1]
-            .replace(/-/g, '')  // Entferne Bindestriche
-            .replace(/T/, '')   // Entferne T
-            .replace(/:/g, '')  // Entferne Doppelpunkte (falls vorhanden)
-            .replace(/Z/, '');  // Entferne Z
-          return fullDateTime;
-        }
-        
-        // Format: YYYYMMDD_* (ohne Zeit)
-        const dateMatch = filename.match(/^(\d{8})/);
-        if (dateMatch) {
-          const dateStr = dateMatch[1] + '000000000'; // Pad mit Nullen für Tagesanfang
-          return dateStr;
-        }
-        
-        // Fallback: Dateiname alphabetisch (für demo-*.jpg etc.)
-        return filename;
-      };
-      
-      const dateTimeA = getDateTimeFromFilename(a);
-      const dateTimeB = getDateTimeFromFilename(b);
-      
-      if (sortOrder === 'desc') {
-        return dateTimeB.localeCompare(dateTimeA); // Neueste zuerst
-      } else {
-        return dateTimeA.localeCompare(dateTimeB); // Älteste zuerst
-      }
-    });
-  }, [photos, sortOrder]);
-
-  const handleSortChange = (_event: React.MouseEvent<HTMLElement>, newSortOrder: 'asc' | 'desc') => {
-    if (newSortOrder !== null) {
-      setSortOrder(newSortOrder);
-    }
-  };
-
   // Multi-Select Handler Functions
   const handlePhotoSelect = (photoName: string, event: React.MouseEvent) => {
     event.stopPropagation();
@@ -149,7 +104,7 @@ const GalleryPage: React.FC = () => {
   };
 
   const handleSelectAll = () => {
-    setSelectedPhotos(new Set(sortedPhotos));
+    setSelectedPhotos(new Set(photos));
   };
 
   const handleDeselectAll = () => {
@@ -313,32 +268,58 @@ const GalleryPage: React.FC = () => {
         <ArrowBackIcon sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
       </IconButton>
       
-      <Button 
-        onClick={() => setSelectionMode(!selectionMode)}
+      <Box
         sx={{
           position: 'fixed',
           top: { xs: 16, sm: 20 },
           right: { xs: 16, sm: 20 },
           zIndex: 1000,
-          px: { xs: 2, sm: 3 },
-          py: { xs: 1, sm: 1.5 },
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          color: '#fff',
-          backdropFilter: 'blur(8px)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          borderRadius: 2,
-          fontSize: { xs: '0.8rem', sm: '0.9rem' },
-          fontWeight: 500,
-          textTransform: 'none',
-          '&:hover': { 
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            transform: 'scale(1.05)'
-          },
-          transition: 'all 0.2s'
+          display: 'flex',
+          gap: { xs: 1, sm: 2 }
         }}
       >
-        {selectionMode ? 'Abbrechen' : 'Auswählen'}
-      </Button>
+        <Button 
+          onClick={() => setSelectionMode(!selectionMode)}
+          sx={{
+            px: { xs: 2, sm: 3 },
+            py: { xs: 1, sm: 1.5 },
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            color: '#fff',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            borderRadius: 2,
+            fontSize: { xs: '0.8rem', sm: '0.9rem' },
+            fontWeight: 500,
+            textTransform: 'none',
+            '&:hover': { 
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              transform: 'scale(1.05)'
+            },
+            transition: 'all 0.2s'
+          }}
+        >
+          {selectionMode ? 'Abbrechen' : 'Auswählen'}
+        </Button>
+        
+        <IconButton 
+          onClick={() => navigate('/admin')}
+          sx={{
+            width: { xs: 48, sm: 56 },
+            height: { xs: 48, sm: 56 },
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            color: '#fff',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            '&:hover': { 
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              transform: 'scale(1.05)'
+            },
+            transition: 'all 0.2s'
+          }}
+        >
+          <AdminPanelSettingsIcon sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
+        </IconButton>
+      </Box>
       
       <Box 
         sx={{ 
@@ -349,12 +330,44 @@ const GalleryPage: React.FC = () => {
           pt: { xs: 8, sm: 10 } // Platz für die freistehenden Buttons
         }}
       >
+        {/* Breadcrumb Navigation */}
+        <Breadcrumbs 
+          aria-label="breadcrumb" 
+          sx={{ mb: { xs: 2, md: 3 } }}
+        >
+          <Link 
+            underline="hover" 
+            color="inherit" 
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              navigate('/gallery');
+            }}
+            sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+          >
+            <HomeIcon fontSize="inherit" />
+            Foto-Ordner
+          </Link>
+          <Typography 
+            color="text.primary"
+            sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+          >
+            <PhotoLibraryIcon fontSize="inherit" />
+            Alle Fotos
+          </Typography>
+        </Breadcrumbs>
+
         {loading ? (
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
             <CircularProgress size={60} />
           </Box>
         ) : (
           <>
+            {/* Debug Info */}
+            <Typography variant="body2" sx={{ mb: 2, opacity: 0.7 }}>
+              Debug: {photos.length} Fotos geladen
+            </Typography>
+            
             {photos.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 8 }}>
                 <Typography variant="h4" sx={{ mb: 2 }}>
@@ -365,75 +378,21 @@ const GalleryPage: React.FC = () => {
                 </Typography>
               </Box>
             ) : (
-              <>
-                <Box sx={{ 
-                  display: 'flex', 
-                  justifyContent: 'flex-start',
-                  alignItems: 'center',
-                  mb: 3,
-                  gap: 3
-                }}>
-                  <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                    {sortedPhotos.length} {sortedPhotos.length === 1 ? 'Foto' : 'Fotos'} gesamt
-                  </Typography>
-                  
-                  <ToggleButtonGroup
-                    value={sortOrder}
-                    exclusive
-                    onChange={handleSortChange}
-                    aria-label="Sortierung"
-                    size="small"
-                    sx={{ 
-                      '& .MuiToggleButton-root': {
-                        px: { xs: 1.5, md: 2 },
-                        py: { xs: 0.5, md: 1 },
-                        border: '1px solid',
-                        borderColor: 'primary.main',
-                        color: 'primary.main',
-                        '&.Mui-selected': {
-                          backgroundColor: 'primary.main',
-                          color: 'white',
-                          '&:hover': {
-                            backgroundColor: 'primary.dark',
-                          },
-                        },
-                        '&:hover': {
-                          backgroundColor: 'primary.light',
-                          color: 'white',
-                        },
-                      }
-                    }}
-                  >
-                    <ToggleButton value="desc" aria-label="Neueste zuerst">
-                      <ArrowDownwardIcon fontSize="small" sx={{ mr: 0.5 }} />
-                      <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-                        Neueste
-                      </Typography>
-                    </ToggleButton>
-                    <ToggleButton value="asc" aria-label="Älteste zuerst">
-                      <ArrowUpwardIcon fontSize="small" sx={{ mr: 0.5 }} />
-                      <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-                        Älteste
-                      </Typography>
-                    </ToggleButton>
-                  </ToggleButtonGroup>
-                </Box>
-                
-                <Box 
-                  sx={{ 
-                    display: 'grid',
-                    gridTemplateColumns: {
-                      xs: 'repeat(2, 1fr)',
-                      sm: 'repeat(3, 1fr)',
-                      md: 'repeat(4, 1fr)',
-                      lg: 'repeat(5, 1fr)',
-                      xl: 'repeat(6, 1fr)'
-                    },
-                    gap: { xs: 1, sm: 2, md: 3 },
-                    width: '100%'
-                  }}
-                >
-                {sortedPhotos.map((photo) => (
+              <Box 
+                sx={{ 
+                  display: 'grid',
+                  gridTemplateColumns: {
+                    xs: 'repeat(2, 1fr)',
+                    sm: 'repeat(3, 1fr)',
+                    md: 'repeat(4, 1fr)',
+                    lg: 'repeat(5, 1fr)',
+                    xl: 'repeat(6, 1fr)'
+                  },
+                  gap: { xs: 1, sm: 2, md: 3 },
+                  width: '100%'
+                }}
+              >
+                {photos.map((photo) => (
                   <Card 
                     key={photo}
                     sx={{ 
@@ -506,8 +465,7 @@ const GalleryPage: React.FC = () => {
                     </CardActionArea>
                   </Card>
                 ))}
-                </Box>
-              </>
+              </Box>
             )}
             
             {/* Foto aufnehmen Button - nur wenn nicht im Auswahlmodus */}
@@ -554,7 +512,7 @@ const GalleryPage: React.FC = () => {
       {selectionMode && (
         <PhotoSelectionBar
           selectedCount={selectedPhotos.size}
-          totalCount={sortedPhotos.length}
+          totalCount={photos.length}
           onSelectAll={handleSelectAll}
           onDeselectAll={handleDeselectAll}
           onMoveToTrash={handleMoveToTrash}
@@ -590,3 +548,4 @@ const GalleryPage: React.FC = () => {
 };
 
 export default GalleryPage;
+
