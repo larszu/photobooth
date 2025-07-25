@@ -14,10 +14,10 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import { useNavigate } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
+import { AuthContext } from '../../src/context/AuthContext';
+import { useTheme } from '../../src/context/ThemeContext';
 import SimpleKeyboard from '../components/SimpleKeyboard';
-import { useVirtualKeyboard } from '../hooks/useVirtualKeyboard';
+import { useVirtualKeyboard } from '../../src/hooks/useVirtualKeyboard';
 
 const AdminPage: React.FC = () => {
   const [ssid, setSsid] = useState('');

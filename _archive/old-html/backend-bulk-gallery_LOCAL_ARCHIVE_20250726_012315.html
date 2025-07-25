@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📸 Photobooth - Geteilte Fotos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+
+        .photo-count {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 25px;
+            display: inline-block;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .photo-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .photo-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .photo-card img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            display: block;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .photo-card img:hover {
+            transform: scale(1.02);
+        }
+
+        .photo-info {
+            padding: 15px;
+        }
+
+        .photo-filename {
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+
+        .photo-metadata {
+            font-size: 0.75em;
+            opacity: 0.8;
+            margin-bottom: 10px;
+        }
+
+        .photo-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s ease;
+            font-size: 0.85em;
+        }
+
+        .btn-primary {
+            background: rgba(76, 175, 80, 0.9);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: rgba(76, 175, 80, 1);
+            transform: scale(1.05);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .download-all {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .download-all .btn {
+            font-size: 1.1em;
+            padding: 12px 30px;
+            background: rgba(76, 175, 80, 0.9);
+            color: white;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            opacity: 0.8;
+            font-size: 0.9em;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+        }
+
+        .error {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid rgba(244, 67, 54, 0.5);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .gallery {
+                grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+                gap: 15px;
+            }
+            
+            .photo-card img {
+                height: 200px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .gallery {
+                grid-template-columns: 1fr;
+            }
+            
+            .photo-actions {
+                flex-direction: column;
+            }
+        }
+
+        /* Image Modal Styles */
+        .image-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            position: relative;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            max-width: 90vw;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.1em;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5em;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .modal-body {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .modal-body img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 10px;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            padding: 15px 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            justify-content: center;
+        }
+
+        /* Notification Styles */
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(76, 175, 80, 0.9);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+            z-index: 1001;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📸 Photobooth</h1>
+            <div class="subtitle">Geteilte Fotos</div>
+            <div class="photo-count" id="photoCount">
+                Lädt Fotos...
+            </div>
+        </div>
+
+        <div id="loadingMessage" class="loading">
+            <h3>🔄 Fotos werden geladen...</h3>
+            <p>Bitte einen Moment Geduld</p>
+        </div>
+
+        <div id="errorMessage" class="error" style="display: none;">
+            <h3>❌ Fehler beim Laden</h3>
+            <p id="errorText"></p>
+        </div>
+
+        <div class="download-all" id="downloadAllSection" style="display: none;">
+            <button class="btn" onclick="downloadAllPhotos()">
+                📦 Alle Fotos herunterladen
+            </button>
+        </div>
+
+        <div id="gallery" class="gallery"></div>
+
+        <div class="footer">
+            <p>🚀 Powered by Photobooth Smart Share V2</p>
+            <p>Fotos direkt auf dein Gerät herunterladen</p>
+        </div>
+    </div>
+
+    <script>
+        // Parse URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const photosParam = urlParams.get('photos');
+        
+        let photoList = [];
+
+        async function loadPhotos() {
+            try {
+                if (!photosParam) {
+                    throw new Error('Keine Fotos angegeben in der URL');
+                }
+
+                // Parse photo IDs from URL parameter
+                photoList = photosParam.split(',').map(id => decodeURIComponent(id.trim()));
+                
+                document.getElementById('photoCount').textContent = `${photoList.length} ${photoList.length === 1 ? 'Foto' : 'Fotos'} geteilt`;
+                document.getElementById('loadingMessage').style.display = 'none';
+                document.getElementById('downloadAllSection').style.display = 'block';
+
+                // Create gallery
+                const gallery = document.getElementById('gallery');
+                gallery.innerHTML = '';
+
+                for (const photoId of photoList) {
+                    await createPhotoCard(photoId, gallery);
+                }
+
+            } catch (error) {
+                console.error('Error loading photos:', error);
+                document.getElementById('loadingMessage').style.display = 'none';
+                document.getElementById('errorMessage').style.display = 'block';
+                document.getElementById('errorText').textContent = error.message;
+            }
+        }
+
+        async function createPhotoCard(photoId, gallery) {
+            try {
+                // Parse photoId to extract folder and filename
+                const parts = photoId.split('/');
+                const filename = parts[parts.length - 1];
+                const folder = parts.length > 1 ? parts.slice(0, -1).join('/') : '';
+
+                // Create photo card
+                const card = document.createElement('div');
+                card.className = 'photo-card';
+                
+                // Use thumbnail for fast loading
+                const thumbnailUrl = `/api/photos/${encodeURIComponent(filename)}/thumbnail?size=300`;
+                // Use static endpoint for downloads (direct file access)
+                const downloadUrl = folder ? 
+                    `/photos/${encodeURIComponent(folder)}/${encodeURIComponent(filename)}` :
+                    `/photos/${encodeURIComponent(filename)}`;
+                // Use static endpoint for viewing (direct file access)
+                const viewUrl = folder ? 
+                    `/photos/${encodeURIComponent(folder)}/${encodeURIComponent(filename)}` :
+                    `/photos/${encodeURIComponent(filename)}`;
+                
+                // Use original filename for download (no modification needed)
+                let displayFilename = filename;
+                
+                card.innerHTML = `
+                    <img src="${thumbnailUrl}" alt="${displayFilename}" loading="lazy" 
+                         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDMwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjZjVmNWY1Ii8+CjxwYXRoIGQ9Ik0xNTAgMTAwTDEyNSA3NUgxNzVMMTUwIDEwMFoiIGZpbGw9IiNjY2MiLz4KPHN2Zz4K'"
+                         onclick="viewFullImage('${viewUrl}', '${filename}')">
+                    <div class="photo-info">
+                        <div class="photo-filename">${filename}</div>
+                        <div class="photo-metadata" id="metadata-${filename}">Lädt...</div>
+                        <div class="photo-actions">
+                            <a href="${downloadUrl}" class="btn btn-primary" download="${displayFilename}">
+                                💾 Herunterladen
+                            </a>
+                            <button class="btn btn-secondary" onclick="shareImageFile('${downloadUrl}', '${filename}')">
+                                📤 Teilen
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                gallery.appendChild(card);
+                
+                // Load metadata asynchronously
+                loadPhotoMetadata(filename);
+                
+            } catch (error) {
+                console.error('Error creating photo card for:', photoId, error);
+            }
+        }
+
+        async function loadPhotoMetadata(filename) {
+            try {
+                const response = await fetch(`/api/photos`);
+                const data = await response.json();
+                
+                // Find photo in the data structure
+                let photoInfo = null;
+                for (const folder of data.folders) {
+                    const photo = folder.photos.find(p => p.filename === filename);
+                    if (photo) {
+                        photoInfo = photo;
+                        break;
+                    }
+                }
+                
+                if (photoInfo) {
+                    const metadataElement = document.getElementById(`metadata-${filename}`);
+                    if (metadataElement) {
+                        const fileSize = (photoInfo.size / (1024 * 1024)).toFixed(1); // MB
+                        const date = new Date(photoInfo.created).toLocaleDateString('de-DE', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                        metadataElement.innerHTML = `📅 ${date} • 📊 ${fileSize} MB`;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading metadata for:', filename, error);
+                const metadataElement = document.getElementById(`metadata-${filename}`);
+                if (metadataElement) {
+                    metadataElement.innerHTML = '📷 Foto';
+                }
+            }
+        }
+
+        function viewFullImage(imageUrl, filename) {
+            // Create modal overlay
+            const modal = document.createElement('div');
+            modal.className = 'image-modal';
+            modal.innerHTML = `
+                <div class="modal-backdrop" onclick="closeModal()"></div>
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>${filename}</h3>
+                        <button class="modal-close" onclick="closeModal()">✕</button>
+                    </div>
+                    <div class="modal-body">
+                        <img src="${imageUrl}" alt="${filename}" loading="lazy">
+                    </div>
+                    <div class="modal-footer">
+                        <a href="${imageUrl}" class="btn btn-primary" download="${filename}">
+                            💾 Herunterladen
+                        </a>
+                        <button class="btn btn-secondary" onclick="closeModal()">
+                            ❌ Schließen
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function closeModal() {
+            const modal = document.querySelector('.image-modal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        async function shareImageFile(imageUrl, filename) {
+            try {
+                showNotification('📸 Lade Bild für das Teilen...');
+                
+                // Fetch the image as blob
+                const response = await fetch(imageUrl);
+                if (!response.ok) {
+                    throw new Error('Fehler beim Laden des Bildes');
+                }
+                
+                const blob = await response.blob();
+                
+                // Check if Web Share API is available and supports files
+                if (navigator.share && navigator.canShare) {
+                    // Create file from blob
+                    const file = new File([blob], filename, { 
+                        type: blob.type || 'image/jpeg',
+                        lastModified: Date.now()
+                    });
+                    
+                    // Try to share the file directly
+                    const shareData = {
+                        title: `📸 Photobooth Foto`,
+                        text: `Foto von der Photobooth`,
+                        files: [file]
+                    };
+                    
+                    if (navigator.canShare(shareData)) {
+                        await navigator.share(shareData);
+                        showNotification('📤 Foto erfolgreich geteilt!');
+                        return;
+                    }
+                }
+                
+                // Fallback: Create download link and trigger download, then show share instructions
+                showNotification('📱 Foto wird heruntergeladen...');
+                
+                // Create download link
+                const downloadUrl = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = filename;
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // Clean up the blob URL
+                setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+                
+                // Show instructions for sharing the downloaded file
+                showDownloadInstructions(filename);
+                
+            } catch (error) {
+                console.error('Error sharing image file:', error);
+                showNotification('❌ Fehler beim Laden des Bildes');
+            }
+        }
+        
+        function showDownloadInstructions(filename) {
+            // Create instruction modal
+            const modal = document.createElement('div');
+            modal.className = 'image-modal';
+            modal.innerHTML = `
+                <div class="modal-backdrop" onclick="closeShareModal()"></div>
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>📤 Foto geteilt: ${filename}</h3>
+                        <button class="modal-close" onclick="closeShareModal()">✕</button>
+                    </div>
+                    <div class="modal-body" style="text-align: center; padding: 30px;">
+                        <div style="font-size: 3em; margin-bottom: 20px;">✅</div>
+                        <p style="margin-bottom: 20px; font-size: 1.2em;">
+                            <strong>Foto wurde heruntergeladen!</strong>
+                        </p>
+                        <p style="margin-bottom: 20px; font-size: 0.9em; line-height: 1.6;">
+                            Das Foto ist jetzt in Ihren Downloads gespeichert.<br>
+                            Sie können es nun in jeder App teilen:
+                        </p>
+                        <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; margin: 20px 0;">
+                            <p style="font-size: 0.9em; line-height: 1.8; margin: 0;">
+                                📱 <strong>Mobil:</strong> Öffnen Sie Ihre Galerie und teilen Sie das Foto<br>
+                                💻 <strong>Desktop:</strong> Das Foto ist in Ihrem Downloads-Ordner
+                            </p>
+                        </div>
+                        <button class="btn btn-primary" onclick="closeShareModal()" style="font-size: 1em; padding: 12px 24px;">
+                            ✅ Verstanden
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            // Auto-close after 5 seconds
+            setTimeout(() => {
+                closeShareModal();
+            }, 5000);
+        }
+        
+        function closeShareModal() {
+            const modal = document.querySelector('.image-modal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+        
+        function copyToClipboard(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showNotification('📋 Link wurde in die Zwischenablage kopiert!');
+                }).catch(() => {
+                    fallbackCopyToClipboard(text);
+                });
+            } else {
+                fallbackCopyToClipboard(text);
+            }
+        }
+        
+        function fallbackCopyToClipboard(text) {
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showNotification('📋 Link wurde in die Zwischenablage kopiert!');
+                } else {
+                    showNotification('❌ Kopieren fehlgeschlagen. Bitte manuell kopieren: ' + text);
+                }
+            } catch (err) {
+                showNotification('❌ Kopieren nicht unterstützt. URL: ' + text);
+            }
+            
+            document.body.removeChild(textArea);
+        }
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        function downloadAllPhotos() {
+            if (photoList.length === 0) {
+                showNotification('❌ Keine Fotos zum Herunterladen verfügbar');
+                return;
+            }
+
+            showNotification(`📦 Starte Download von ${photoList.length} Fotos...`);
+
+            // Download each photo individually (browsers don't support bulk downloads)
+            photoList.forEach((photoId, index) => {
+                setTimeout(() => {
+                    try {
+                        const parts = photoId.split('/');
+                        const filename = parts[parts.length - 1];
+                        const folder = parts.length > 1 ? parts.slice(0, -1).join('/') : '';
+                        
+                        // Ensure filename has .jpg extension for download, but don't add if already present
+                        let downloadFilename = filename;
+                        if (!downloadFilename.toLowerCase().endsWith('.jpg') && !downloadFilename.toLowerCase().endsWith('.jpeg')) {
+                            const nameWithoutExt = downloadFilename.replace(/\.[^/.]+$/, "");
+                            downloadFilename = `${nameWithoutExt}.jpg`;
+                        }
+                        
+                        const downloadUrl = folder ? 
+                            `/photos/${encodeURIComponent(folder)}/${encodeURIComponent(filename)}` :
+                            `/photos/${encodeURIComponent(filename)}`;
+                        
+                        const link = document.createElement('a');
+                        link.href = downloadUrl;
+                        link.download = downloadFilename;
+                        link.style.display = 'none';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        
+                        // Show progress
+                        if (index === photoList.length - 1) {
+                            setTimeout(() => {
+                                showNotification('✅ Alle Fotos werden heruntergeladen!');
+                            }, 500);
+                        }
+                    } catch (error) {
+                        console.error('Error downloading photo:', photoId, error);
+                    }
+                }, index * 800); // Stagger downloads to avoid browser limits
+            });
+        }
+
+        // Load photos when page loads
+        document.addEventListener('DOMContentLoaded', loadPhotos);
+
+        // Keyboard navigation for modal
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

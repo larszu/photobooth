@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Box, Typography, IconButton, Button, Dialog, Breadcrumbs, Link } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import HomeIcon from '@mui/icons-material/Home';
@@ -8,8 +8,7 @@ import TimerIcon from '@mui/icons-material/Timer';
 import RemoveIcon from '@mui/icons-material/Remove';
 import AddIcon from '@mui/icons-material/Add';
 
-const PhotoPage: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+const CameraPage: React.FC = () => {
   const [branding, setBranding] = useState<{ type: 'logo' | 'text', logo?: string, text?: string }>({ type: 'text', text: '' });
   // Selbstauslöser-Logik
   const [timerMode, setTimerMode] = useState<3 | 5 | 10>(3);
@@ -18,16 +17,13 @@ const PhotoPage: React.FC = () => {
   const [timerDialog, setTimerDialog] = useState(false);
   const navigate = useNavigate();
 
-  // Diese Seite ist nur für neue Fotos (mit Auslöse-Buttons)
-  const isNewPhoto = true;
-
   // Lade Branding-Daten
   useEffect(() => {
-    fetch('http://localhost:3001/api/branding')
+    fetch('/api/branding')
       .then(res => res.json())
       .then(data => {
         console.log('Branding response:', data);
-        if (data.success) {
+        if (data.success || data.type) {
           setBranding(data);
           console.log('Branding data loaded:', data);
         }
@@ -44,14 +40,15 @@ const PhotoPage: React.FC = () => {
   const handleShoot = async () => {
     setShooting(true);
     try {
-      const res = await fetch('http://localhost:3001/api/photo/take', { method: 'POST' });
+      const res = await fetch('/api/camera/shoot', { method: 'POST' });
       const data = await res.json();
       console.log('Photo take response:', data);
-      if (data.success && data.filename) {
-        // Zur Einzelansicht des neuen Fotos navigieren
-        // Verwende den vollständigen Pfad aus folder/filename falls verfügbar
-        const photoPath = data.folder ? `${data.folder}/${data.filename}` : data.filename;
-        navigate(`/view/${encodeURIComponent(photoPath)}`);
+      if (data.success || data.filename) {
+        // Zur Galerie navigieren und neu laden
+        setTimeout(() => {
+          navigate('/gallery');
+          window.location.reload();
+        }, 1000);
       } else {
         alert('Fehler beim Aufnehmen des Fotos');
       }
@@ -119,17 +116,17 @@ const PhotoPage: React.FC = () => {
         flexDirection: 'column', 
         alignItems: 'center',
         minHeight: 'calc(100vh - 64px)',
-        maxWidth: '2000px', // Gleiche Maximalgröße wie PhotoViewPage
+        maxWidth: '2000px',
         margin: '0 auto',
-        px: 0, // Minimales horizontales Padding wie PhotoViewPage
-        pt: { xs: 0.5, sm: 1, md: 2 }, // Gleiche obere Abstände wie PhotoViewPage
-        pb: { xs: 6, sm: 7, md: 8 }, // Gleiche untere Abstände wie PhotoViewPage
+        px: 0,
+        pt: { xs: 0.5, sm: 1, md: 2 },
+        pb: { xs: 6, sm: 7, md: 8 },
       }}>
-        {/* Breadcrumb Navigation - ausgeblendet für gleiche Optik wie PhotoViewPage */}
+        {/* Breadcrumb Navigation - versteckt für clean look */}
         <Breadcrumbs 
           aria-label="breadcrumb" 
           sx={{ 
-            display: 'none', // Versteckt für identische Optik wie PhotoViewPage
+            display: 'none',
             mb: { xs: 2, md: 3 }, 
             alignSelf: 'flex-start', 
             ml: { xs: 2, md: 2 } 
@@ -163,27 +160,28 @@ const PhotoPage: React.FC = () => {
         {branding.type === 'text' && branding.text && (
           <Typography variant="h3" sx={{ mb: 2, fontWeight: 700, fontSize: { xs: 28, md: 40 } }}>{branding.text}</Typography>
         )}
-        {/* Kamera-Vorschau im 3:2 Format - gleiche Größe wie PhotoViewPage */}
+
+        {/* Kamera-Vorschau im 3:2 Format */}
         <Box
           sx={{
             overflow: 'hidden',
             touchAction: 'none',
             borderRadius: 4,
             width: { 
-              xs: '99vw', // Gleiche Größe wie PhotoViewPage
+              xs: '99vw',
               sm: '98vw',
               md: '97vw',
               lg: '96vw',
               xl: '95vw'
             },
-            maxWidth: '2000px', // Gleiche Maximalgröße wie PhotoViewPage
-            aspectRatio: '3/2', // 3:2 Format wie PhotoViewPage
+            maxWidth: '2000px',
+            aspectRatio: '3/2',
             background: '#222',
             position: 'relative',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            mx: 'auto', // Zentrieren
+            mx: 'auto',
           }}
           onDoubleClick={handleDoubleClick}
         >
@@ -201,7 +199,7 @@ const PhotoPage: React.FC = () => {
               fontSize: '2rem'
             }}
           >
-            Kamera bereit
+            {countdown !== null ? `${countdown}` : 'Kamera bereit'}
           </Box>
           
           {/* Auslöse-Buttons */}
@@ -217,7 +215,7 @@ const PhotoPage: React.FC = () => {
           }}>
             {/* Haupt-Auslöser mittig positioniert */}
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', width: '100%' }}>
-              {/* Selbstauslöser-Button - weiter links positioniert */}
+              {/* Selbstauslöser-Button - links positioniert */}
               <Box
                 sx={{
                   width: 56,
@@ -233,13 +231,14 @@ const PhotoPage: React.FC = () => {
                   fontSize: '1.5rem',
                   '&:hover': { backgroundColor: 'rgba(255, 255, 255, 1)' },
                   position: 'absolute',
-                  left: 'calc(50% - 120px)', // Weiter links vom Zentrum
+                  left: 'calc(50% - 120px)',
                 }}
                 onClick={handleTimerShoot}
               >
                 <TimerIcon sx={{ fontSize: '1.5rem' }} />
               </Box>
-              {/* Haupt-Auslöser - iPhone-Style mit integriertem Countdown - mittig */}
+
+              {/* Haupt-Auslöser - iPhone-Style - mittig */}
               <Box
                 sx={{
                   width: 80,
@@ -262,21 +261,8 @@ const PhotoPage: React.FC = () => {
                 }}
                 onClick={(shooting || countdown !== null) ? undefined : handleShoot}
               >
-                {countdown !== null ? countdown : (shooting ? '📸' : '')}
+                {countdown !== null ? countdown : ''}
               </Box>
-            </Box>
-            
-            {/* Navigation Buttons als Overlay */}
-            <Box sx={{
-              position: 'absolute',
-              bottom: 20, // Gleiche Position wie auf PhotoViewPage
-              left: 0,
-              right: 0,
-              display: 'flex',
-              alignItems: 'center',
-              paddingX: 3, // Abstand von den Rändern
-              pointerEvents: 'none',
-            }}>
             </Box>
           </Box>
         </Box>
@@ -316,4 +302,4 @@ const PhotoPage: React.FC = () => {
   );
 };
 
-export default PhotoPage;
+export default CameraPage;
