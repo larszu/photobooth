@@ -2,21 +2,12 @@
 import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
-import session from 'express-session';
 import cookieParser from 'cookie-parser';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs';
 import QRCode from 'qrcode';
 import sharp from 'sharp';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-
-// Import Auth-Modul (aus Backend-Ordner)
-import { login, verifyToken, requireAuth, getAuthStatus, changePassword } from './auth.js';
-import brandingRoutes from './brandingRoutes.js';
-
-const execAsync = promisify(exec);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
