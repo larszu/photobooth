@@ -12,8 +12,8 @@ export const useGPIOWebSocket = () => {
 
   const connect = () => {
     try {
-      // WebSocket-Verbindung zum Backend
-      const ws = new WebSocket('ws://localhost:3002');
+      // WebSocket-Verbindung zum Backend (angepasst für Raspberry Pi)
+      const ws = new WebSocket('ws://192.168.8.204:3002');
       wsRef.current = ws;
 
       ws.onopen = () => {

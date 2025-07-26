@@ -15,7 +15,7 @@ import { promisify } from 'util';
 // Import Auth-Modul
 import { login, verifyToken, requireAuth, getAuthStatus, changePassword } from './auth.js';
 import brandingRoutes from './brandingRoutes.js';
-import gpio from './gpio.js';
+import { getGPIOInstance } from './gpio.js';
 
 const execAsync = promisify(exec);
 
@@ -270,9 +270,8 @@ class RaspberryPiCamera {
       const filepath = path.join(folderPath, filename);
       
       if (this.isInitialized) {
-        // Echte Foto-Aufnahme mit gphoto2
-        const command = `gphoto2 --capture-image-and-download --filename="${filepath}"`;
-        await execAsync(command);
+        // Robuste Foto-Aufnahme mit gphoto2 und Retry-Logik
+        await this.capturePhotoWithRetry(filepath, filename);
         console.log('📸 Real photo captured with gphoto2:', filename);
       } else {
         // Fallback: Erstelle Demo-Foto
@@ -299,6 +298,118 @@ class RaspberryPiCamera {
     } catch (error) {
       console.error('❌ Error taking photo:', error);
       throw error;
+    }
+  }
+
+  // Erweiterte gphoto2 Capture-Methode mit Timeout und Retry-Logik
+  async capturePhotoWithRetry(filepath, filename, maxRetries = 3) {
+    const retryDelays = [1000, 2000, 4000]; // 1s, 2s, 4s (der erwähnte 4-Sekunden-Timeout)
+    
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        console.log(`📸 Camera capture attempt ${attempt + 1}/${maxRetries}`);
+        
+        // Technik 1: USB-Freigabe vor jedem Versuch
+        if (attempt > 0) {
+          await this.releaseUSBDevice();
+          await new Promise(resolve => setTimeout(resolve, retryDelays[attempt - 1]));
+        }
+        
+        // Technik 2: Timeout-Capture mit progressiv längeren Timeouts
+        const timeoutMs = 4000 + (attempt * 2000); // 4s, 6s, 8s
+        const command = `gphoto2 --capture-image-and-download --filename="${filepath}"`;
+        
+        await this.executeWithTimeout(command, timeoutMs);
+        
+        // Erfolg: Prüfe ob Datei wirklich erstellt wurde
+        if (fs.existsSync(filepath)) {
+          console.log(`✅ Photo captured successfully on attempt ${attempt + 1}`);
+          return;
+        } else {
+          throw new Error('Photo file not created despite successful command');
+        }
+        
+      } catch (error) {
+        console.warn(`⚠️ Capture attempt ${attempt + 1} failed:`, error.message);
+        
+        // Bei USB-Claiming-Fehlern: spezielle Behandlung
+        if (error.message.includes('Could not claim the USB device') || 
+            error.message.includes('Device or resource busy')) {
+          
+          console.log('🔧 USB device busy - applying recovery techniques...');
+          
+          // Technik 3: Erweiterte USB-Recovery (die "vergessene" Technik)
+          await this.performUSBRecovery();
+        }
+        
+        // Letzter Versuch fehlgeschlagen
+        if (attempt === maxRetries - 1) {
+          throw new Error(`Photo capture failed after ${maxRetries} attempts: ${error.message}`);
+        }
+      }
+    }
+  }
+
+  // Hilfsfunktion für gphoto2 mit Timeout (aus working version)
+  async executeWithTimeout(command, timeoutMs = 5000) {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error(`Command timed out after ${timeoutMs}ms: ${command}`));
+      }, timeoutMs);
+
+      exec(command, (error, stdout, stderr) => {
+        clearTimeout(timeout);
+        if (error) {
+          reject(error);
+        } else {
+          resolve({ stdout, stderr });
+        }
+      });
+    });
+  }
+
+  // USB-Gerät freigeben
+  async releaseUSBDevice() {
+    try {
+      console.log('🔧 Releasing USB device...');
+      
+      // Methode 1: Explicit gphoto2 exit
+      await execAsync('pkill -f gphoto2 || true');
+      
+      // Methode 2: USB reset für gphoto2-Geräte
+      await execAsync('sudo lsusb | grep -i camera | head -1 | cut -d: -f1 | xargs -I {} sudo sh -c "echo {} > /sys/bus/usb/drivers/usb/unbind" || true');
+      
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+    } catch (error) {
+      console.warn('⚠️ USB release warning:', error.message);
+    }
+  }
+
+  // Erweiterte USB-Recovery (die "vergessene" Technik)
+  async performUSBRecovery() {
+    try {
+      console.log('🚑 Performing advanced USB recovery...');
+      
+      // Technik 1: Service-Stop & Restart
+      await execAsync('sudo systemctl stop gvfs-daemon 2>/dev/null || true');
+      await execAsync('sudo pkill -f gvfs-gphoto2-volume-monitor || true');
+      
+      // Technik 2: USB-Subsystem refresh
+      await execAsync('sudo modprobe -r usbhid && sudo modprobe usbhid || true');
+      
+      // Technik 3: Die "vergessene" Technik - Full USB Stack Reset
+      await execAsync('echo "Performing USB stack reset..." && sudo sh -c "echo 1 > /sys/bus/usb/devices/usb*/authorized" || true');
+      
+      // Technik 4: gphoto2 --reset (weniger bekannt)
+      await execAsync('gphoto2 --reset || true');
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      console.log('✅ USB recovery completed');
+      
+    } catch (error) {
+      console.warn('⚠️ USB recovery warning:', error.message);
     }
   }
 
@@ -371,64 +482,73 @@ const camera = new RaspberryPiCamera();
 (async () => {
   try {
     console.log('🔧 Initializing GPIO...');
-    // Erstmal GPIO exklusiv für Fotobox reservieren
-    await gpio.reserveGpioForPhotobooth();
     
-    // Dann GPIO initialisieren
-    await gpio.setupGpio();
+    // GPIO Instance holen
+    const gpio = getGPIOInstance();
     
-    // GPIO Button Event Handler - funktioniert immer und navigiert zur Photo-Seite
-    await gpio.onButtonPress(async () => {
-      console.log('🔘 GPIO Button pressed - navigating to photo page and taking photo...');
-      
-      // 1. Navigation zur Photo-Seite über WebSocket
-      broadcastToClients({
-        type: 'navigate',
-        path: '/photo/new'
-      });
-      
-      // 2. Kurz warten damit Navigation stattfindet
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // 3. Foto machen
-      try {
-        const result = await camera.takePhoto();
-        if (result.success) {
-          console.log(`✅ GPIO Photo taken: ${result.filename}`);
- // Feedback
-          
-          // 4. Frontend über neues Foto informieren
-          broadcastToClients({
-            type: 'photo-taken',
-            filename: result.filename,
-            success: true
-          });
-          
-          // 5. Navigation zur spezifischen Foto-Ansicht (wie beim Touch-Button)
-          const photoPath = result.folder ? `${result.folder}/${result.filename}` : result.filename;
-          broadcastToClients({
-            type: 'navigate',
-            path: `/view/${encodeURIComponent(photoPath)}`
-          });
-        } else {
-          console.error('❌ GPIO Photo failed');
+    // GPIO initialisieren
+    const gpioInitialized = await gpio.initialize();
+    
+    if (gpioInitialized) {
+      // GPIO Button Event Handler - kompletter Foto-Workflow wie Touch-Button
+      gpio.setPhotoCallback(async () => {
+        console.log('🔘 GPIO Button pressed - starting complete photo workflow...');
+        
+        // 1. Navigation zur Photo-Seite über WebSocket
+        broadcastToClients({
+          type: 'navigate',
+          path: '/photo/new'
+        });
+        
+        // 2. Kurz warten damit Navigation stattfindet
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        // 3. Foto machen (gleicher Workflow wie Touch-Button)
+        try {
+          const result = await camera.takePhoto();
+          if (result.success) {
+            console.log(`✅ GPIO Photo taken: ${result.filename}`);
+            
+            // 4. Navigation zur Foto-Ansicht des neuen Fotos (wie Touch-Button)
+            const photoPath = result.folder ? `${result.folder}/${result.filename}` : result.filename;
+            console.log(`🔘 GPIO navigating to photo view: /view/${photoPath}`);
+            
+            broadcastToClients({
+              type: 'navigate',
+              path: `/view/${encodeURIComponent(photoPath)}`
+            });
+            
+            // 5. Optional: Frontend über erfolgreiches Foto informieren
+            broadcastToClients({
+              type: 'photo-taken',
+              filename: result.filename,
+              folder: result.folder,
+              photoPath: photoPath,
+              success: true
+            });
+          } else {
+            console.error('❌ GPIO Photo failed');
+            broadcastToClients({
+              type: 'photo-taken',
+              success: false,
+              error: 'Photo capture failed'
+            });
+          }
+        } catch (error) {
+          console.error('❌ GPIO Photo error:', error);
           broadcastToClients({
             type: 'photo-taken',
             success: false,
-            error: 'Photo capture failed'
+            error: error.message
           });
         }
-      } catch (error) {
-        console.error('❌ GPIO Photo error:', error);
-        broadcastToClients({
-          type: 'photo-taken',
-          success: false,
-          error: error.message
-        });
-      }
-    });
+      });
+      
+      console.log('✅ GPIO initialized with auto-navigation handler');
+    } else {
+      console.warn('⚠️ GPIO initialization failed, continuing without GPIO');
+    }
     
-    console.log('✅ GPIO initialized with auto-navigation handler');
     console.log('📡 WebSocket server running on port 3002');
   } catch (error) {
     console.error('❌ GPIO initialization failed:', error);
